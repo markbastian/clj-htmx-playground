@@ -6,20 +6,18 @@
     [hiccup.page :refer [html5]]
     [ring.adapter.jetty9 :as jetty]))
 
-(def empty-room-list
-  [:div#roomList.sidebar
-   {:style "width: 150px;"}])
-
 (def oob-empty-room-list
-  (assoc-in empty-room-list [1 :hx-swap-oob] "true"))
+  [:div#roomList.sidebar
+   {:style "width: 150px;" :hx-swap-oob "true"}])
+
+(def all-rooms-query
+  '[:find [?room-name ...]
+    :in $
+    :where
+    [_ :room-name ?room-name]])
 
 (defn occupied-rooms [db]
-  (let [room-names (d/q
-                     '[:find [?room-name ...]
-                       :in $
-                       :where
-                       [_ :room-name ?room-name]]
-                     db)]
+  (let [room-names (d/q all-rooms-query db)]
     (->> room-names
          sort
          (map (fn [room-name]
@@ -30,13 +28,6 @@
                      :method     :post
                      :hx-headers (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
                  room-name])))))
-
-(defmulti on-text-handler (fn [_ctx json] (get-in json [:HEADERS :HX-Trigger-Name])))
-
-(defmethod on-text-handler :default [_ json]
-  (println "UNKNOWN DISPATCH VALUE")
-  (pp/pprint json)
-  (println "END UNKNOWN DISPATCH VALUE"))
 
 (def all-ws-query
   '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
@@ -90,6 +81,13 @@
          {:id          "notifications"
           :hx-swap-oob "beforeend"}
          [:div (format "%s: %s" username message)]]))))
+
+(defmulti on-text-handler (fn [_ctx json] (get-in json [:HEADERS :HX-Trigger-Name])))
+
+(defmethod on-text-handler :default [_ json]
+  (println "UNKNOWN DISPATCH VALUE")
+  (pp/pprint json)
+  (println "END UNKNOWN DISPATCH VALUE"))
 
 (defmethod on-text-handler "chat_message" [{:keys [path-params conn] :as _context}
                                            {:keys [chat_message] :as _json}]
