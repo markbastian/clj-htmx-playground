@@ -36,6 +36,19 @@
     [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
     [:div {:id "app"} show-chat-login]))
 
+(def room-create-modal
+  [:div#exampleModal.modal.fade {:tabindex "-1" :role "dialog" :aria-labelledby "exampleModalLabel" :aria-hidden "true"}
+   [:div.modal-dialog {:role "document"}
+    [:div.modal-content
+     [:div.modal-header
+      [:h5#exampleModalLabel.modal-title "Modal title"]
+      [:button.close {:type "button" :data-dismiss "modal" :aria-label "Close"}
+       [:span {:aria-hidden "true"} "&times;"]]]
+     [:div.modal-body "..."]
+     [:div.modal-footer
+      [:button.btn.btn-secondary {:type "button" :data-dismiss "modal"} "Close"]
+      [:button.btn.btn-primary {:type "button"} "Save changes"]]]]])
+
 (defn chat-room [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
     (html5
@@ -45,7 +58,10 @@
        [:div#chat.container
         {:style "margin-left: 150px;"}
         [:h3#roomname roomname]
+        ;[:button.btn.btn-primary {:type "button" :data-toggle "modal" :data-target "#exampleModal"} "Launch demo modal"]
+        ;room-create-modal
         [:div
          [:p {:id "notifications"}]
          [:form {:ws-send "true" :name "chat_message" :method :post}
-          [:input {:name "chat_message" :autocomplete "off"}]]]]])))
+          [:input.form-control {:name "chat_message" :autocomplete "off"}]]]]])))
+
