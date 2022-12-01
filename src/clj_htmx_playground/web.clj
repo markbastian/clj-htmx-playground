@@ -12,7 +12,8 @@
     [ring.adapter.jetty9 :as jetty]
     [clj-htmx-playground.expand-collapse :as sidebar]
     [clj-htmx-playground.chat.domain :as chat]
-    [clj-htmx-playground.chat.pages :as chat-pages]))
+    [clj-htmx-playground.chat.pages :as chat-pages]
+    [clj-htmx-playground.modal :as modal]))
 
 ;;https://github.com/markbastian/conj2019/blob/master/src/main/clj/conj2019/full_demo/web/v0.clj
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
@@ -60,7 +61,8 @@
      ["/ws/:room-name/:username" {:handler    ws-handler
                                   :parameters {:path {:room-name string?
                                                       :username  string?}}}]
-     ["/chat" {:post (fn [request] (ok (chat-pages/chat-room request)))}]]
+     ["/chat" {:post (fn [request] (ok (chat-pages/chat-room request)))}]
+     ["/modal" {:post (fn [request] (ok modal/page))}]]
     sidebar/routes))
 
 (def handler
