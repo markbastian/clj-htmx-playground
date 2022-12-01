@@ -66,7 +66,12 @@
 (defn join-room [{:keys [conn]} username room-name]
   (let [{old-room-name :room-name ws :ws} (d/entity @conn [:username username])]
     (when-not (= room-name old-room-name)
-      (jetty/send! ws (html5 [:h3#roomname {:hx-swap-oob "true"} room-name]))
+      (jetty/send! ws (html5
+                        [:a#roomChangeLink.link-primary
+                         {:data-bs-toggle "modal"
+                          :data-bs-target "#changeRoomModal"
+                          :hx-swap-oob "true"}
+                         room-name]))
       (let [{:keys [db-after]} (d/transact! conn [{:username username :room-name room-name}])]
         (broadcast-leave-room db-after username old-room-name)
         (broadcast-enter-room db-after username room-name)

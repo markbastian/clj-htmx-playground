@@ -10,13 +10,11 @@
     [:label "Room"]
     [:input.form-control
      {:name         "roomname"
-      :type         "text"
       :placeholder  "Enter room name"
       :autocomplete "off"}]
     [:label "Username"]
     [:input.form-control
      {:name         "username"
-      :type         "text"
       :placeholder  "Enter username"
       :autocomplete "off"}]]
    [:button.btn.btn-primary
@@ -37,22 +35,26 @@
     [:div {:id "app"} show-chat-login]))
 
 (def room-create-modal
-  [:div#exampleModal.modal.fade
+  [:div#changeRoomModal.modal.fade
    {:tabindex "-1"}
    [:div.modal-dialog
     [:div.modal-content
      [:div.modal-header
-      [:h1#exampleModalLabel.modal-title.fs-5 "Enter new value"]
+      [:h1#changeRoomModalLabel.modal-title.fs-5 "Change Room"]
       [:button.btn-close
        {:type            "button"
         :data-bs-dismiss "modal"}]]
      [:form
+      {:ws-send "true"
+       :name    "change_room"
+       :method  :post}
       [:div.modal-body
        [:div.form-group
-        [:label.col-form-label {:for "recipient-name"} "New value:"]
-        [:input#recipient-name.form-control
-         {:type "text"
-          :name "new-button-text"}]]]
+        [:label.col-form-label "Destination room:"]
+        [:input.form-control
+         {:type         "text"
+          :name         "room-name"
+          :autocomplete "off"}]]]
       [:div.modal-footer
        [:button.btn.btn-secondary
         {:type            "button"
@@ -61,9 +63,10 @@
        [:button.btn.btn-primary
         {:type            "button"
          :data-bs-dismiss "modal"
-         :hx-target       "#mainButton"
-         :hx-post         "/modal/save"}
-        "Save changes"]]]]]])
+         :ws-send         "true"
+         :name            "change_room"
+         :method          :post}
+        "Go"]]]]]])
 
 (defn chat-room [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
@@ -73,15 +76,20 @@
         {:style "width: 150px;"}]
        [:div#chat.container
         {:style "margin-left: 150px;"}
-        [:h3#roomname roomname]
-        [:button#mainButton.btn.btn-primary
-         {:type           "button"
-          :data-bs-toggle "modal"
-          :data-bs-target "#exampleModal"}
-         "Show modal"]
+        [:p
+         [:b "Current room:"]
+         [:b [:i [:a#roomChangeLink.link-primary
+                  {:data-bs-toggle "modal"
+                   :data-bs-target "#changeRoomModal"}
+                  roomname]]]]
         room-create-modal
         [:div
          [:p {:id "notifications"}]
          [:form {:ws-send "true" :name "chat_message" :method :post}
-          [:input.form-control {:name "chat_message" :autocomplete "off"}]]]]])))
+          [:input#chatPrompt.form-control {:name         "chat_message"
+                                           :autocomplete "off"
+                                           :onblur       "console.log('blur')"
+                                           :onfocus      "console.log('focus')"
+                                           :onchange     "console.log('change')"
+                                           :onsubmit     "console.log('submit')"}]]]]])))
 
