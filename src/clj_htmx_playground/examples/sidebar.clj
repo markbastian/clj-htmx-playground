@@ -1,4 +1,4 @@
-(ns clj-htmx-playground.expand-collapse
+(ns clj-htmx-playground.examples.sidebar
   (:require
     [clojure.java.io :as io]
     [ring.util.http-response :refer [ok]]
@@ -38,7 +38,6 @@
       (template true))))
 
 (def routes
-  "Data-driven routes."
   [["/sidebar" {:handler landing-page}]
    ["/openSidebar" {:post (fn [_] (ok (html5 (template true))))}]
    ["/closeSidebar" {:post (fn [_] (ok (html5 (template false))))}]])
