@@ -21,12 +21,12 @@
     (->> room-names
          sort
          (map (fn [room-name]
-                [:a {:id         room-name
-                     :href       ""
-                     :ws-send    "true"
-                     :name       "change_room"
-                     :method     :post
-                     :hx-headers (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
+                [:a {:id      room-name
+                     :href    ""
+                     :ws-send "true"
+                     :name    "change_room"
+                     :method  :post
+                     :hx-vals (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
                  room-name])))))
 
 (def all-ws-query
@@ -95,7 +95,6 @@
         {:keys [room-name]} (d/entity @conn [:username username])]
     (broadcast-chat-message @conn username room-name chat_message)))
 
-(defmethod on-text-handler "change_room" [{:keys [path-params] :as context} json]
-  (let [{:keys [username]} path-params
-        room-name (get-in json [:HEADERS :room-name])]
+(defmethod on-text-handler "change_room" [{:keys [path-params] :as context} {:keys [room-name]}]
+  (let [{:keys [username]} path-params]
     (join-room context username room-name)))
