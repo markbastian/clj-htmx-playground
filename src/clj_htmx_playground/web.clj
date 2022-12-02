@@ -61,7 +61,8 @@
            ["/ws/:room-name/:username" {:handler    ws-handler
                                         :parameters {:path {:room-name string?
                                                             :username  string?}}}]
-           ["/chat" {:post (fn [request] (ok (chat-pages/chat-room request)))}]]
+           ["/chat" {:post (fn [request] (ok (chat-pages/chat-room request)))}]
+           ["/cards" {:handler (fn [request] (ok chat-pages/cards))}]]
           [sidebar/routes
            modal/routes]))
 
