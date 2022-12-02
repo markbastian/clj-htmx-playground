@@ -100,58 +100,100 @@
       "https://unpkg.com/htmx.org@1.8.4"
       "https://unpkg.com/htmx.org/dist/ext/ws.js"
       "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js")
-    [:div
+    [:div.container
      [:p.fs-4 "Team White"]
      [:div.row
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 1"]
         [:div.card-body
          [:h5.card-title.text-center "Cowboy"]]]]
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 2"]
         [:div.card-body
          [:h5.card-title.text-center "Mexico"]]]]
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 3"]
         [:div.card-body
          [:h5.card-title.text-center "Starcraft"]]]]
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 4"]
         [:div.card-body
          [:h5.card-title.text-center "Horse"]]]]]
-     [:div.input-group.mb-3
-      [:span.input-group-text "4"]
-      [:input.form-control {:type "text" :placeholder "Enter Clue"}]]
-     [:div.input-group.mb-3
-      [:span.input-group-text "2"]
-      [:input.form-control {:type "text" :placeholder "Enter Clue"}]]
-     [:div.input-group.mb-3
-      [:span.input-group-text "1"]
-      [:input.form-control {:type "text" :placeholder "Enter Clue"}]]]
-    [:div
+     ;; TODO - I can templatize this for the clue giver and have another
+     ;; template for the clue receivers.
+     [:form.form-group
+      [:div.input-group.mb-3
+       [:span.input-group-text.text-bg-light "4"]
+       [:input#white-clue-1.form-control.text-bg-light
+        {:type "text" :name "white-clue-1" :placeholder "Enter Clue" :autocomplete "off"}]]
+      [:div.input-group.mb-3
+       [:span.input-group-text.text-bg-light "2"]
+       [:input#white-clue-2.form-control.text-bg-light
+        {:type "text" :name "white-clue-2" :placeholder "Enter Clue" :autocomplete "off"}]]
+      [:div.input-group.mb-3
+       [:span.input-group-text.text-bg-light "1"]
+       [:input#white-clue-3.form-control.text-bg-light
+        {:type "text" :name "white-clue-3" :placeholder "Enter Clue" :autocomplete "off"}]]
+      [:button.btn.btn-light {:type "button" :hx-post "/submitClues"} "Submit Clues"]]]
+    [:div.container
      [:p.fs-4 "Team Black"]
      [:div.row
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 1"]
         [:div.card-body
          [:h5.card-title.text-center "Banana"]]]]
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 2"]
         [:div.card-body
          [:h5.card-title.text-center "Clojure"]]]]
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 3"]
         [:div.card-body
          [:h5.card-title.text-center "Monkey"]]]]
-      [:div.col-sm-2
+      [:div.col
        [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
         [:div.card-header "Word 4"]
         [:div.card-body
-         [:h5.card-title.text-center "Hacker"]]]]]]))
+         [:h5.card-title.text-center "Hacker"]]]]]
+     [:form.form-group
+      [:div.input-group.mb-3
+       [:span.input-group-text.text-bg-secondary "4"]
+       [:input#black-clue-1.form-control.text-bg-secondary
+        {:name "black-clue-1" :placeholder "Enter Clue" :autocomplete "off"}]]
+      [:div.input-group.mb-3
+       [:span.input-group-text.text-bg-secondary "2"]
+       [:input#black-clue-2.form-control.text-bg-secondary
+        {:name "black-clue-2" :placeholder-primary "Enter Clue" :autocomplete "off"}]]
+      [:div.input-group.mb-3
+       [:span.input-group-text.text-bg-secondary "1"]
+       [:input#black-clue-3.form-control.text-bg-secondary
+        {:name "black-clue-3" :placeholder "Enter Clue" :autocomplete "off"}]]
+      [:button.btn.btn-secondary {:type "button" :hx-post "/submitClues"} "Submit Clues"]]]))
+
+;(def show-chat-login
+;  [:form.container
+;   [:div.form-group
+;    [:h3 "Simple Chat"]
+;    [:h2 "Join a room!"]
+;    [:label "Room"]
+;    [:input.form-control
+;     {:name         "roomname"
+;      :placeholder  "Enter room name"
+;      :autocomplete "off"}]
+;    [:label "Username"]
+;    [:input.form-control
+;     {:name         "username"
+;      :placeholder  "Enter username"
+;      :autocomplete "off"}]]
+;   [:button.btn.btn-primary
+;    {:type      "submit"
+;     :hx-post   "/chat"
+;     :hx-target "#app"}
+;    "Join"]])

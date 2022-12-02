@@ -1,5 +1,6 @@
 (ns clj-htmx-playground.web
   (:require
+    [clojure.pprint :as pp]
     [datascript.core :as d]
     [jsonista.core :as j]
     [reitit.ring :as ring]
@@ -62,7 +63,14 @@
                                         :parameters {:path {:room-name string?
                                                             :username  string?}}}]
            ["/chat" {:post (fn [request] (ok (chat-pages/chat-room request)))}]
-           ["/cards" {:handler (fn [request] (ok chat-pages/cards))}]]
+           ["/cards" {:handler (fn [request] (ok chat-pages/cards))}]
+           ["/submitClues" {:post (fn [request]
+                                    (pp/pprint (select-keys request [:params
+                                                                     :parameters
+                                                                     :form-params
+                                                                     :path-params
+                                                                     :query-params]))
+                                    (ok "Foo"))}]]
           [sidebar/routes
            modal/routes]))
 
