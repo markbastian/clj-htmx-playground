@@ -12,19 +12,18 @@
     :where
     [_ :room-name ?room-name]])
 
+(defn room-name->li [room-name]
+  [:li [:a.link-dark.rounded
+        {:id      room-name
+         :href    ""
+         :ws-send "true"
+         :name    "change_room"
+         :method  :post
+         :hx-vals (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
+        room-name]])
+
 (defn occupied-rooms [db]
-  (let [room-names (d/q all-rooms-query db)]
-    (->> room-names
-         sort
-         (map (fn [room-name]
-                [:li [:a.link-dark.rounded
-                      {:id      room-name
-                       :href    ""
-                       :ws-send "true"
-                       :name    "change_room"
-                       :method  :post
-                       :hx-vals (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
-                      room-name]])))))
+  (->> (d/q all-rooms-query db) sort (map room-name->li)))
 
 (def all-ws-query
   '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
@@ -67,7 +66,7 @@
                         [:a#roomChangeLink.link-primary
                          {:data-bs-toggle "modal"
                           :data-bs-target "#changeRoomModal"
-                          :hx-swap-oob "true"}
+                          :hx-swap-oob    "true"}
                          room-name]))
       (let [{:keys [db-after]} (d/transact! conn [{:username username :room-name room-name}])]
         (broadcast-leave-room db-after username old-room-name)
