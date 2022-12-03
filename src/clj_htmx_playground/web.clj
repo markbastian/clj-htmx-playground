@@ -35,11 +35,8 @@
                       (chat/on-text-handler context json)))
      :on-bytes    (fn on-bytes [_ _ _ _]
                     (println "on-bytes unhandled"))
-     :on-close    (fn on-close [ws _status-code _reason]
-                    (let [{:keys [room-name]} (d/entity @conn [:ws ws])
-                          {:keys [db-after]} (d/transact! conn [[:db/retractEntity [:ws ws]]])]
-                      (chat/broadcast-leave-room db-after username room-name)
-                      (chat/broadcast-update-room-list @conn)))
+     :on-close    (fn on-close [_ws _status-code _reason]
+                    (chat/leave-chat context username))
      :on-ping     (fn on-ping [ws payload] (println "PING")
                     (jetty/send! ws payload))
      :on-pong     (fn on-pong [_ _] (println "PONG"))

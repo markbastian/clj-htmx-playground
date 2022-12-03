@@ -12,6 +12,12 @@
     :where
     [_ :room-name ?room-name]])
 
+(def all-users-query
+  '[:find [?username ...]
+    :in $
+    :where
+    [_ :username ?username]])
+
 (defn room-name->li [room-name]
   [:li [:a.link-dark.rounded
         {:id      room-name
@@ -24,6 +30,9 @@
 
 (defn occupied-rooms [db]
   (->> (d/q all-rooms-query db) sort (map room-name->li)))
+
+(defn all-users [db]
+  (->> (d/q all-users-query db) sort (map room-name->li)))
 
 (def all-ws-query
   '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
@@ -40,6 +49,14 @@
                          (into
                            [:ul#roomList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small]
                            (occupied-rooms db)))]
+    (doseq [client (d/q all-ws-query db)]
+      (jetty/send! client room-list-html))))
+
+(defn broadcast-update-user-list [db]
+  (let [room-list-html (html5
+                         (into
+                           [:ul#userList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small]
+                           (all-users db)))]
     (doseq [client (d/q all-ws-query db)]
       (jetty/send! client room-list-html))))
 
@@ -71,7 +88,8 @@
       (let [{:keys [db-after]} (d/transact! conn [{:username username :room-name room-name}])]
         (broadcast-leave-room db-after username old-room-name)
         (broadcast-enter-room db-after username room-name)
-        (broadcast-update-room-list db-after)))))
+        (broadcast-update-room-list db-after)
+        (broadcast-update-user-list db-after)))))
 
 (defn broadcast-chat-message [db username room-name message]
   (doseq [client (d/q room-name->ws-query db room-name)]
@@ -82,6 +100,13 @@
          {:id          "notifications"
           :hx-swap-oob "beforeend"}
          [:div (format "%s: %s" username message)]]))))
+
+(defn leave-chat [{:keys [conn]} username]
+  (let [{:keys [room-name]} (d/entity @conn [:username username])
+        {:keys [db-after]} (d/transact! conn [[:db/retractEntity [:username username]]])]
+    (broadcast-leave-room db-after username room-name)
+    (broadcast-update-room-list @conn)
+    (broadcast-update-user-list @conn)))
 
 (defmulti on-text-handler (fn [_ctx json] (get-in json [:HEADERS :HX-Trigger-Name])))
 

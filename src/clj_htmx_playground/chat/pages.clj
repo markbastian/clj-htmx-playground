@@ -80,51 +80,50 @@
          :method          :post}
         "Go"]]]]]])
 
+(defn sidebar-list [list-name id]
+  (let [collapse-id (format "%s-collapse" id)]
+    [:li.mb-1
+     [:button.btn.btn-toggle.align-items-center.rounded.collapsed
+      {:data-bs-toggle "collapse"
+       :data-bs-target (format "#%s" collapse-id)}
+      list-name]
+     [:div.collapse
+      {:id collapse-id}
+      [:ul.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small
+       {:id id}]]]))
+
 (defn sidebar []
-  [:div.p-2.col-2
-   [:ul.list-unstyled.ps-0
-    [:li.mb-1
-     [:button.btn.btn-toggle.align-items-center.rounded.collapsed
-      {:data-bs-toggle "collapse"
-       :data-bs-target "#home-collapse"}
-      "Rooms"]
-     [:div#home-collapse.collapse
-      [:ul#roomList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small]]]
-    [:li.mb-1
-     [:button.btn.btn-toggle.align-items-center.rounded.collapsed
-      {:data-bs-toggle "collapse"
-       :data-bs-target "#dashboard-collapse"
-       :aria-expanded  "false"}
-      "Users"]
-     [:div#dashboard-collapse.collapse
-      [:ul#userList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small
-       [:li [:a.link-dark.rounded {:href "#"} "Overview"]]
-       [:li [:a.link-dark.rounded {:href "#"} "Weekly"]]
-       [:li [:a.link-dark.rounded {:href "#"} "Monthly"]]
-       [:li [:a.link-dark.rounded {:href "#"} "Annually"]]]]]]])
+  [:ul.list-unstyled.ps-0
+   (sidebar-list "Rooms" "roomList")
+   (sidebar-list "Users" "userList")])
+
+(defn chat-panel [roomname]
+  [:div#chat
+   [:p.p-2.border
+    [:b "You are in room "]
+    [:a#roomChangeLink.link-primary
+     {:data-bs-toggle "modal"
+      :data-bs-target "#changeRoomModal"}
+     roomname]]
+   room-create-modal
+   [:div
+    [:p {:id "notifications"}]
+    [:form {:ws-send "true" :name "chat_message" :method :post}
+     [:input#chatPrompt.form-control
+      {:name         "chat_message"
+       :autocomplete "off"
+       :onblur       "console.log('blur')"
+       :onfocus      "console.log('focus')"
+       :onchange     "console.log('change')"
+       :onsubmit     "console.log('submit')"}]]]])
 
 (defn chat-room [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
     (html5
-      [:div.row {:hx-ext "ws" :ws-connect (format "/ws/%s/%s" roomname username)}
-       (sidebar)
-       [:div#chat.p-2.col
-        [:p
-         [:b "Current room:"]
-         [:b [:i [:a#roomChangeLink.link-primary
-                  {:data-bs-toggle "modal"
-                   :data-bs-target "#changeRoomModal"}
-                  roomname]]]]
-        room-create-modal
-        [:div
-         [:p {:id "notifications"}]
-         [:form {:ws-send "true" :name "chat_message" :method :post}
-          [:input#chatPrompt.form-control {:name         "chat_message"
-                                           :autocomplete "off"
-                                           :onblur       "console.log('blur')"
-                                           :onfocus      "console.log('focus')"
-                                           :onchange     "console.log('change')"
-                                           :onsubmit     "console.log('submit')"}]]]]])))
+      [:div.row {:hx-ext "ws"
+                 :ws-connect (format "/ws/%s/%s" roomname username)}
+       [:div.p-2.col-2 (sidebar)]
+       [:div.p-2.col (chat-panel roomname)]])))
 
 (def cards
   (html5
