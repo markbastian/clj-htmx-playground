@@ -23,6 +23,17 @@
      :hx-target "#app"}
     "Join"]])
 
+(defn wrap-as-page [content]
+  (html5
+    (include-css "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css")
+    (include-js
+      "https://unpkg.com/htmx.org@1.8.4"
+      "https://unpkg.com/htmx.org/dist/ext/ws.js"
+      "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js")
+    [:style (slurp (io/resource "clj_htmx_playground/styles.css"))]
+    [:style (slurp (io/resource "clj_htmx_playground/sidebars.css"))]
+    content))
+
 (def landing-page
   (html5
     (include-css "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css")
@@ -31,6 +42,7 @@
       "https://unpkg.com/htmx.org/dist/ext/ws.js"
       "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js")
     [:style (slurp (io/resource "clj_htmx_playground/styles.css"))]
+    [:style (slurp (io/resource "clj_htmx_playground/sidebars.css"))]
     [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
     [:div {:id "app"} show-chat-login]))
 
@@ -68,14 +80,35 @@
          :method          :post}
         "Go"]]]]]])
 
+(defn sidebar []
+  [:div.p-2.col-2
+   [:ul.list-unstyled.ps-0
+    [:li.mb-1
+     [:button.btn.btn-toggle.align-items-center.rounded.collapsed
+      {:data-bs-toggle "collapse"
+       :data-bs-target "#home-collapse"}
+      "Rooms"]
+     [:div#home-collapse.collapse
+      [:ul#roomList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small]]]
+    [:li.mb-1
+     [:button.btn.btn-toggle.align-items-center.rounded.collapsed
+      {:data-bs-toggle "collapse"
+       :data-bs-target "#dashboard-collapse"
+       :aria-expanded  "false"}
+      "Users"]
+     [:div#dashboard-collapse.collapse
+      [:ul#userList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small
+       [:li [:a.link-dark.rounded {:href "#"} "Overview"]]
+       [:li [:a.link-dark.rounded {:href "#"} "Weekly"]]
+       [:li [:a.link-dark.rounded {:href "#"} "Monthly"]]
+       [:li [:a.link-dark.rounded {:href "#"} "Annually"]]]]]]])
+
 (defn chat-room [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
     (html5
-      [:div {:hx-ext "ws" :ws-connect (format "/ws/%s/%s" roomname username)}
-       [:div#roomList.sidebar
-        {:style "width: 150px;"}]
-       [:div#chat.container
-        {:style "margin-left: 150px;"}
+      [:div.row {:hx-ext "ws" :ws-connect (format "/ws/%s/%s" roomname username)}
+       (sidebar)
+       [:div#chat.p-2.col
         [:p
          [:b "Current room:"]
          [:b [:i [:a#roomChangeLink.link-primary

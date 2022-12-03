@@ -64,7 +64,13 @@
            ["/ws/:room-name/:username" {:handler    ws-handler
                                         :parameters {:path {:room-name string?
                                                             :username  string?}}}]
-           ["/chat" {:post (fn [request] (ok (chat-pages/chat-room request)))}]
+           ["/chat" {:get  (fn [request] (ok (chat-pages/wrap-as-page
+                                               (chat-pages/chat-room (update request
+                                                                             :params
+                                                                             merge
+                                                                             {:username  "Mark"
+                                                                              :roomname "public"})))))
+                     :post (fn [request] (ok (chat-pages/chat-room request)))}]
            ["/cards" {:handler (fn [request] (ok chat-pages/cards))}]
            ["/submitClues" {:post (fn [request]
                                     (pp/pprint (select-keys request [:params

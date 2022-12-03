@@ -6,10 +6,6 @@
     [hiccup.page :refer [html5]]
     [ring.adapter.jetty9 :as jetty]))
 
-(def oob-empty-room-list
-  [:div#roomList.sidebar
-   {:style "width: 150px;" :hx-swap-oob "true"}])
-
 (def all-rooms-query
   '[:find [?room-name ...]
     :in $
@@ -21,13 +17,14 @@
     (->> room-names
          sort
          (map (fn [room-name]
-                [:a {:id      room-name
-                     :href    ""
-                     :ws-send "true"
-                     :name    "change_room"
-                     :method  :post
-                     :hx-vals (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
-                 room-name])))))
+                [:li [:a.link-dark.rounded
+                      {:id      room-name
+                       :href    ""
+                       :ws-send "true"
+                       :name    "change_room"
+                       :method  :post
+                       :hx-vals (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
+                      room-name]])))))
 
 (def all-ws-query
   '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
@@ -42,7 +39,7 @@
 (defn broadcast-update-room-list [db]
   (let [room-list-html (html5
                          (into
-                           oob-empty-room-list
+                           [:ul#roomList.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small]
                            (occupied-rooms db)))]
     (doseq [client (d/q all-ws-query db)]
       (jetty/send! client room-list-html))))
