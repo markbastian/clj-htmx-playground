@@ -12,9 +12,11 @@
     [ring.middleware.json :refer [wrap-json-response]]
     [ring.adapter.jetty9 :as jetty]
     [clj-htmx-playground.examples.sidebar :as sidebar]
+    [clj-htmx-playground.examples.bootstrap-sidebar :as bootstrap-sidebar]
     [clj-htmx-playground.chat.domain :as chat]
     [clj-htmx-playground.chat.pages :as chat-pages]
-    [clj-htmx-playground.examples.modal :as modal]))
+    [clj-htmx-playground.examples.modal :as modal]
+    [clj-htmx-playground.examples.offcanvas :as offcanvas]))
 
 ;;https://github.com/markbastian/conj2019/blob/master/src/main/clj/conj2019/full_demo/web/v0.clj
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
@@ -70,7 +72,9 @@
                                                                      :form-params
                                                                      :path-params
                                                                      :query-params]))
-                                    (ok "Foo"))}]]
+                                    (ok "Foo"))}]
+           ["/sb" {:handler (fn [_] (ok bootstrap-sidebar/sidebar))}]
+           ["/offcanvas" {:handler (fn [_] (ok offcanvas/offcanvas))}]]
           [sidebar/routes
            modal/routes]))
 
