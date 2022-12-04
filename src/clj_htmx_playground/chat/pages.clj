@@ -109,6 +109,9 @@
    [:div
     [:div#notifications]]])
 
+;; TODO: Instead of sending a message on a socket, submit the form, return the
+;; new form, and used the known connections to broadcast the message.
+(defn post-chat-message [request])
 (defn chat-page [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
     (html5
@@ -123,25 +126,3 @@
          {:name         "chat_message"
           :placeholder  (format "Message #%s" roomname)
           :autocomplete "off"}]]])))
-
-
-;(def show-chat-login
-;  [:form.container
-;   [:div.form-group
-;    [:h3 "Simple Chat"]
-;    [:h2 "Join a room!"]
-;    [:label "Room"]
-;    [:input.form-control
-;     {:name         "roomname"
-;      :placeholder  "Enter room name"
-;      :autocomplete "off"}]
-;    [:label "Username"]
-;    [:input.form-control
-;     {:name         "username"
-;      :placeholder  "Enter username"
-;      :autocomplete "off"}]]
-;   [:button.btn.btn-primary
-;    {:type      "submit"
-;     :hx-post   "/chat"
-;     :hx-target "#app"}
-;    "Join"]])

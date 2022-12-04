@@ -73,6 +73,7 @@
                                                    {:username "Mark"
                                                     :roomname "public"})))))
                :post (fn [request] (ok (chat-pages/chat-page request)))}]
+     ["/chatMessage" {:post (fn [request] (ok (chat-pages/post-chat-message request)))}]
      ["/cards" {:handler (fn [request] (ok decoder-pages/cards))}]
      ["/submitClues" {:post (fn [request]
                               (pp/pprint (select-keys request [:params
