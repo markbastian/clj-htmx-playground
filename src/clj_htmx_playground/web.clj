@@ -15,8 +15,11 @@
     [clj-htmx-playground.examples.bootstrap-sidebar :as bootstrap-sidebar]
     [clj-htmx-playground.chat.domain :as chat]
     [clj-htmx-playground.chat.pages :as chat-pages]
+    [clj-htmx-playground.decoder.pages :as decoder-pages]
     [clj-htmx-playground.examples.modal :as modal]
-    [clj-htmx-playground.examples.offcanvas :as offcanvas]))
+    [clj-htmx-playground.examples.offcanvas :as offcanvas]
+    [clj-htmx-playground.examples.tailwind.simple :as tw.simple]
+    [clj-htmx-playground.examples.bootstrap.flex :as bs.flex]))
 
 ;;https://github.com/markbastian/conj2019/blob/master/src/main/clj/conj2019/full_demo/web/v0.clj
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
@@ -56,30 +59,36 @@
        {:status 200 :body "hello"}))))
 
 (def routes
-  (reduce into
-          [["/" {:handler (fn [_] (ok chat-pages/landing-page))}]
-           ["/ws/:room-name/:username" {:handler    ws-handler
-                                        :parameters {:path {:room-name string?
-                                                            :username  string?}}}]
-           ["/chat" {:get  (fn [request] (ok (chat-pages/wrap-as-page
-                                               (chat-pages/chat-room (update request
-                                                                             :params
-                                                                             merge
-                                                                             {:username  "Mark"
-                                                                              :roomname "public"})))))
-                     :post (fn [request] (ok (chat-pages/chat-room request)))}]
-           ["/cards" {:handler (fn [request] (ok chat-pages/cards))}]
-           ["/submitClues" {:post (fn [request]
-                                    (pp/pprint (select-keys request [:params
-                                                                     :parameters
-                                                                     :form-params
-                                                                     :path-params
-                                                                     :query-params]))
-                                    (ok "Foo"))}]
-           ["/sb" {:handler (fn [_] (ok bootstrap-sidebar/sidebar))}]
-           ["/offcanvas" {:handler (fn [_] (ok offcanvas/offcanvas))}]]
-          [sidebar/routes
-           modal/routes]))
+  (reduce
+    into
+    [["/" {:handler (fn [_] (ok chat-pages/landing-page))}]
+     ["/ws/:room-name/:username" {:handler    ws-handler
+                                  :parameters {:path {:room-name string?
+                                                      :username  string?}}}]
+     ["/chat" {:get  (fn [request] (ok (chat-pages/wrap-as-page
+                                         (chat-pages/chat-page
+                                           (update request
+                                                   :params
+                                                   merge
+                                                   {:username "Mark"
+                                                    :roomname "public"})))))
+               :post (fn [request] (ok (chat-pages/chat-page request)))}]
+     ["/cards" {:handler (fn [request] (ok decoder-pages/cards))}]
+     ["/submitClues" {:post (fn [request]
+                              (pp/pprint (select-keys request [:params
+                                                               :parameters
+                                                               :form-params
+                                                               :path-params
+                                                               :query-params]))
+                              (ok "Foo"))}]
+     ["/sb" {:handler (fn [_] (ok bootstrap-sidebar/sidebar))}]
+     ["/offcanvas" {:handler (fn [_] (ok offcanvas/offcanvas))}]
+     ["/tailwind"
+      ["/simple" {:handler (fn [_] (ok tw.simple/page))}]]
+     ["/bootstrap"
+      ["/flex" {:handler (fn [_] (ok bs.flex/flex))}]]]
+    [sidebar/routes
+     modal/routes]))
 
 (def handler
   (ring/ring-handler

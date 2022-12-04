@@ -96,9 +96,8 @@
     (jetty/send!
       client
       (html5
-        [:div
-         {:id          "notifications"
-          :hx-swap-oob "beforeend"}
+        [:div#notifications
+         {:hx-swap-oob "beforeend"}
          [:div (format "%s: %s" username message)]]))))
 
 (defn leave-chat [{:keys [conn]} username]

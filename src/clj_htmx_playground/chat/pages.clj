@@ -97,8 +97,8 @@
    (sidebar-list "Rooms" "roomList")
    (sidebar-list "Users" "userList")])
 
-(defn chat-panel [roomname]
-  [:div#chat
+(defn chat-pane [roomname]
+  [:div#chat.h-100
    [:p.p-2.border
     [:b "You are in room "]
     [:a#roomChangeLink.link-primary
@@ -107,107 +107,23 @@
      roomname]]
    room-create-modal
    [:div
-    [:p {:id "notifications"}]
-    [:form {:ws-send "true" :name "chat_message" :method :post}
-     [:input#chatPrompt.form-control
-      {:name         "chat_message"
-       :autocomplete "off"
-       :onblur       "console.log('blur')"
-       :onfocus      "console.log('focus')"
-       :onchange     "console.log('change')"
-       :onsubmit     "console.log('submit')"}]]]])
+    [:div#notifications]]])
 
-(defn chat-room [{:keys [params] :as _request}]
+(defn chat-page [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
     (html5
-      [:div.row {:hx-ext "ws"
-                 :ws-connect (format "/ws/%s/%s" roomname username)}
-       [:div.p-2.col-2 (sidebar)]
-       [:div.p-2.col (chat-panel roomname)]])))
+      [:div.row.border.h-100
+       {:hx-ext     "ws"
+        :ws-connect (format "/ws/%s/%s" roomname username)}
+       [:div.p-2.col-xs-10.col-sm-2 (sidebar)]
+       [:div.p-2.col-xs-10.col-sm-7 (chat-pane roomname)]
+       [:form.fixed-bottom
+        {:ws-send "true" :name "chat_message" :method :post}
+        [:input.form-control
+         {:name         "chat_message"
+          :placeholder  (format "Message #%s" roomname)
+          :autocomplete "off"}]]])))
 
-(def cards
-  (html5
-    (include-css "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css")
-    (include-js
-      "https://unpkg.com/htmx.org@1.8.4"
-      "https://unpkg.com/htmx.org/dist/ext/ws.js"
-      "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js")
-    [:div.container
-     [:p.fs-4 "Team White"]
-     [:div.row
-      [:div.col
-       [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 1"]
-        [:div.card-body
-         [:h5.card-title.text-center "Cowboy"]]]]
-      [:div.col
-       [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 2"]
-        [:div.card-body
-         [:h5.card-title.text-center "Mexico"]]]]
-      [:div.col
-       [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 3"]
-        [:div.card-body
-         [:h5.card-title.text-center "Starcraft"]]]]
-      [:div.col
-       [:div.card.text-center.text-bg-light.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 4"]
-        [:div.card-body
-         [:h5.card-title.text-center "Horse"]]]]]
-     ;; TODO - I can templatize this for the clue giver and have another
-     ;; template for the clue receivers.
-     [:form.form-group
-      [:div.input-group.mb-3
-       [:span.input-group-text.text-bg-light "4"]
-       [:input#white-clue-1.form-control.text-bg-light
-        {:type "text" :name "white-clue-1" :placeholder "Enter Clue" :autocomplete "off"}]]
-      [:div.input-group.mb-3
-       [:span.input-group-text.text-bg-light "2"]
-       [:input#white-clue-2.form-control.text-bg-light
-        {:type "text" :name "white-clue-2" :placeholder "Enter Clue" :autocomplete "off"}]]
-      [:div.input-group.mb-3
-       [:span.input-group-text.text-bg-light "1"]
-       [:input#white-clue-3.form-control.text-bg-light
-        {:type "text" :name "white-clue-3" :placeholder "Enter Clue" :autocomplete "off"}]]
-      [:button.btn.btn-light {:type "button" :hx-post "/submitClues"} "Submit Clues"]]]
-    [:div.container
-     [:p.fs-4 "Team Black"]
-     [:div.row
-      [:div.col
-       [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 1"]
-        [:div.card-body
-         [:h5.card-title.text-center "Banana"]]]]
-      [:div.col
-       [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 2"]
-        [:div.card-body
-         [:h5.card-title.text-center "Clojure"]]]]
-      [:div.col
-       [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 3"]
-        [:div.card-body
-         [:h5.card-title.text-center "Monkey"]]]]
-      [:div.col
-       [:div.card.text-center.text-bg-secondary.mb-3 {:style "max-width: 18rem;"}
-        [:div.card-header "Word 4"]
-        [:div.card-body
-         [:h5.card-title.text-center "Hacker"]]]]]
-     [:form.form-group
-      [:div.input-group.mb-3
-       [:span.input-group-text.text-bg-secondary "4"]
-       [:input#black-clue-1.form-control.text-bg-secondary
-        {:name "black-clue-1" :placeholder "Enter Clue" :autocomplete "off"}]]
-      [:div.input-group.mb-3
-       [:span.input-group-text.text-bg-secondary "2"]
-       [:input#black-clue-2.form-control.text-bg-secondary
-        {:name "black-clue-2" :placeholder-primary "Enter Clue" :autocomplete "off"}]]
-      [:div.input-group.mb-3
-       [:span.input-group-text.text-bg-secondary "1"]
-       [:input#black-clue-3.form-control.text-bg-secondary
-        {:name "black-clue-3" :placeholder "Enter Clue" :autocomplete "off"}]]
-      [:button.btn.btn-secondary {:type "button" :hx-post "/submitClues"} "Submit Clues"]]]))
 
 ;(def show-chat-login
 ;  [:form.container
