@@ -23,7 +23,7 @@
         {:id      room-name
          :href    ""
          :ws-send "true"
-         :name    "change_room"
+         :name    "change-room"
          :method  :post
          :hx-vals (j/write-value-as-string {:room-name room-name} j/keyword-keys-object-mapper)}
         room-name]])
@@ -114,12 +114,12 @@
   (pp/pprint json)
   (println "END UNKNOWN DISPATCH VALUE"))
 
-(defmethod on-text-handler "chat_message" [{:keys [path-params conn] :as _context}
-                                           {:keys [chat_message] :as _json}]
+(defmethod on-text-handler "chat-message" [{:keys [path-params conn] :as _context}
+                                           {:keys [chat-message] :as _json}]
   (let [{:keys [username]} path-params
         {:keys [room-name]} (d/entity @conn [:username username])]
-    (broadcast-chat-message @conn username room-name chat_message)))
+    (broadcast-chat-message @conn username room-name chat-message)))
 
-(defmethod on-text-handler "change_room" [{:keys [path-params] :as context} {:keys [room-name]}]
+(defmethod on-text-handler "change-room" [{:keys [path-params] :as context} {:keys [room-name]}]
   (let [{:keys [username]} path-params]
     (join-room context username room-name)))

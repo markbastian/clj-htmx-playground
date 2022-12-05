@@ -9,6 +9,7 @@
     [reitit.ring.middleware.parameters :as parameters]
     [ring.util.http-response :refer [ok not-found]]
     [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+    [ring.middleware.session :refer [wrap-session]]
     [ring.middleware.json :refer [wrap-json-response]]
     [ring.adapter.jetty9 :as jetty]
     [clj-htmx-playground.examples.sidebar :as sidebar]
@@ -102,6 +103,7 @@
                                 (update :responses dissoc :content-types))]
                            ;wrap-params
                            wrap-json-response
+                           wrap-session
                            parameters/parameters-middleware
                            muuntaja/format-request-middleware
                            coercion/coerce-response-middleware

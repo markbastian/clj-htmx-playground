@@ -58,7 +58,7 @@
         :data-bs-dismiss "modal"}]]
      [:form
       {:ws-send "true"
-       :name    "change_room"
+       :name    "change-room"
        :method  :post}
       [:div.modal-body
        [:div.form-group
@@ -76,7 +76,7 @@
         {:type            "button"
          :data-bs-dismiss "modal"
          :ws-send         "true"
-         :name            "change_room"
+         :name            "change-room"
          :method          :post}
         "Go"]]]]]])
 
@@ -109,9 +109,22 @@
    [:div
     [:div#notifications]]])
 
+(defn chat-prompt [roomname]
+  [:input#chatPrompt.form-control
+   {:name         "chat-message"
+    :placeholder  (format "Message #%s" roomname)
+    :autocomplete "off"
+    :hx-post "/chatMessage"
+    :hx-target "#chatPrompt"
+    :hx-swap "outerHTML"}])
+
 ;; TODO: Instead of sending a message on a socket, submit the form, return the
 ;; new form, and used the known connections to broadcast the message.
-(defn post-chat-message [request])
+;; https://luminusweb.com/docs/sessions_cookies.html - think I need this
+(defn post-chat-message [request]
+  (html5
+    (chat-prompt "roomname")))
+
 (defn chat-page [{:keys [params] :as _request}]
   (let [{:keys [roomname username]} params]
     (html5
@@ -121,8 +134,5 @@
        [:div.p-2.col-xs-10.col-sm-2 (sidebar)]
        [:div.p-2.col-xs-10.col-sm-7 (chat-pane roomname)]
        [:form.fixed-bottom
-        {:ws-send "true" :name "chat_message" :method :post}
-        [:input.form-control
-         {:name         "chat_message"
-          :placeholder  (format "Message #%s" roomname)
-          :autocomplete "off"}]]])))
+        {:ws-send "true" :name "chat-message" :method :post}
+        (chat-prompt roomname)]])))
