@@ -7,9 +7,8 @@
     [reitit.ring.middleware.muuntaja :as muuntaja]
     [reitit.ring.coercion :as coercion]
     [reitit.ring.middleware.parameters :as parameters]
-    [ring.util.http-response :refer [ok not-found]]
+    [ring.util.http-response :refer [ok not-found internal-server-error]]
     [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-    [ring.middleware.session :refer [wrap-session]]
     [ring.middleware.json :refer [wrap-json-response]]
     [ring.adapter.jetty9 :as jetty]
     [clj-htmx-playground.examples.sidebar :as sidebar]
@@ -20,7 +19,8 @@
     [clj-htmx-playground.examples.modal :as modal]
     [clj-htmx-playground.examples.offcanvas :as offcanvas]
     [clj-htmx-playground.examples.tailwind.simple :as tw.simple]
-    [clj-htmx-playground.examples.bootstrap.flex :as bs.flex]))
+    [clj-htmx-playground.examples.bootstrap.flex :as bs.flex]
+    [clj-htmx-playground.examples.simple.session :as ss]))
 
 ;;https://github.com/markbastian/conj2019/blob/master/src/main/clj/conj2019/full_demo/web/v0.clj
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
@@ -44,7 +44,11 @@
      :on-ping     (fn on-ping [ws payload] (println "PING")
                     (jetty/send! ws payload))
      :on-pong     (fn on-pong [_ _] (println "PONG"))
-     :on-error    (fn on-error [_ _err] (println "ERROR"))
+     :on-error    (fn on-error [ws err]
+                    (chat/leave-chat context username)
+                    (println ws)
+                    (println err)
+                    (println "ERROR"))
      :subprotocol (first provided-subprotocols)
      :extensions  provided-extensions}))
 
@@ -52,12 +56,9 @@
   ([request]
    (if (jetty/ws-upgrade-request? request)
      (jetty/ws-upgrade-response (partial ws-upgrade-handler request))
-     {:status 200 :body "hello"}))
+     (internal-server-error "Cannot upgrade request")))
   ([request resp _raise]
-   (resp
-     (if (jetty/ws-upgrade-request? request)
-       (jetty/ws-upgrade-response (partial ws-upgrade-handler request))
-       {:status 200 :body "hello"}))))
+   (resp (ws-handler request))))
 
 (def routes
   (reduce
@@ -66,15 +67,20 @@
      ["/ws/:room-name/:username" {:handler    ws-handler
                                   :parameters {:path {:room-name string?
                                                       :username  string?}}}]
-     ["/chat" {:get  (fn [request] (ok (chat-pages/wrap-as-page
-                                         (chat-pages/chat-page
-                                           (update request
-                                                   :params
-                                                   merge
-                                                   {:username "Mark"
-                                                    :roomname "public"})))))
-               :post (fn [request] (ok (chat-pages/chat-page request)))}]
-     ["/chatMessage" {:post (fn [request] (ok (chat-pages/post-chat-message request)))}]
+     ["/chat" {:get  (fn [{:keys [params] :as request}]
+                       (let [{:keys [username room-name]
+                              :or   {username  "TESTUSER"
+                                     room-name "TESTROOM"}} params]
+                         (ok (chat-pages/wrap-as-page
+                               (chat-pages/chat-page
+                                 (update request
+                                         :params
+                                         merge
+                                         {:username  "Mark"
+                                          :room-name "public"}))))))
+               :post (fn [request]
+                       (println "LOGGING IN TO CHAT!!")
+                       (ok (chat-pages/chat-page request)))}]
      ["/cards" {:handler (fn [request] (ok decoder-pages/cards))}]
      ["/submitClues" {:post (fn [request]
                               (pp/pprint (select-keys request [:params
@@ -90,7 +96,8 @@
      ["/bootstrap"
       ["/flex" {:handler (fn [_] (ok bs.flex/flex))}]]]
     [sidebar/routes
-     modal/routes]))
+     modal/routes
+     ss/routes]))
 
 (def handler
   (ring/ring-handler
@@ -103,7 +110,6 @@
                                 (update :responses dissoc :content-types))]
                            ;wrap-params
                            wrap-json-response
-                           wrap-session
                            parameters/parameters-middleware
                            muuntaja/format-request-middleware
                            coercion/coerce-response-middleware

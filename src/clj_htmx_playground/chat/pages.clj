@@ -9,7 +9,7 @@
     [:h2 "Join a room!"]
     [:label "Room"]
     [:input.form-control
-     {:name         "roomname"
+     {:name         "room-name"
       :placeholder  "Enter room name"
       :autocomplete "off"}]
     [:label "Username"]
@@ -97,42 +97,32 @@
    (sidebar-list "Rooms" "roomList")
    (sidebar-list "Users" "userList")])
 
-(defn chat-pane [roomname]
+(defn chat-pane [room-name]
   [:div#chat.h-100
    [:p.p-2.border
     [:b "You are in room "]
     [:a#roomChangeLink.link-primary
      {:data-bs-toggle "modal"
       :data-bs-target "#changeRoomModal"}
-     roomname]]
+     room-name]]
    room-create-modal
    [:div
     [:div#notifications]]])
 
-(defn chat-prompt [roomname]
+(defn chat-prompt [room-name]
   [:input#chatPrompt.form-control
    {:name         "chat-message"
-    :placeholder  (format "Message #%s" roomname)
-    :autocomplete "off"
-    :hx-post "/chatMessage"
-    :hx-target "#chatPrompt"
-    :hx-swap "outerHTML"}])
+    :placeholder  (format "Message #%s" room-name)
+    :autocomplete "off"}])
 
-;; TODO: Instead of sending a message on a socket, submit the form, return the
-;; new form, and used the known connections to broadcast the message.
-;; https://luminusweb.com/docs/sessions_cookies.html - think I need this
-(defn post-chat-message [request]
-  (html5
-    (chat-prompt "roomname")))
-
-(defn chat-page [{:keys [params] :as _request}]
-  (let [{:keys [roomname username]} params]
+(defn chat-page [{:keys [params session cookies] :as _request}]
+  (let [{:keys [room-name username]} params]
     (html5
       [:div.row.border.h-100
        {:hx-ext     "ws"
-        :ws-connect (format "/ws/%s/%s" roomname username)}
+        :ws-connect (format "/ws/%s/%s" room-name username)}
        [:div.p-2.col-xs-10.col-sm-2 (sidebar)]
-       [:div.p-2.col-xs-10.col-sm-7 (chat-pane roomname)]
+       [:div.p-2.col-xs-10.col-sm-7 (chat-pane room-name)]
        [:form.fixed-bottom
         {:ws-send "true" :name "chat-message" :method :post}
-        (chat-prompt roomname)]])))
+        (chat-prompt room-name)]])))

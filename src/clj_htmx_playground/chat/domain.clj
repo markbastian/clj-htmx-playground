@@ -44,6 +44,18 @@
     [?e :ws ?ws]
     [?e :room-name ?room-name]])
 
+(defn update-chat-prompt [db username]
+  (let [{:keys [ws room-name]} (d/entity db [:username username])]
+    (jetty/send!
+      ws
+      (html5
+        [:input#chatPrompt.form-control
+         {:name         "chat-message"
+          :placeholder  (format "Message #%s" room-name)
+          :autocomplete "off"
+          :autofocus    "true"
+          :hx-swap-oob  "true"}]))))
+
 (defn broadcast-update-room-list [db]
   (let [room-list-html (html5
                          (into
@@ -89,7 +101,8 @@
         (broadcast-leave-room db-after username old-room-name)
         (broadcast-enter-room db-after username room-name)
         (broadcast-update-room-list db-after)
-        (broadcast-update-user-list db-after)))))
+        (broadcast-update-user-list db-after)
+        (update-chat-prompt db-after username)))))
 
 (defn broadcast-chat-message [db username room-name message]
   (doseq [client (d/q room-name->ws-query db room-name)]
@@ -118,6 +131,7 @@
                                            {:keys [chat-message] :as _json}]
   (let [{:keys [username]} path-params
         {:keys [room-name]} (d/entity @conn [:username username])]
+    (update-chat-prompt @conn username)
     (broadcast-chat-message @conn username room-name chat-message)))
 
 (defmethod on-text-handler "change-room" [{:keys [path-params] :as context} {:keys [room-name]}]
