@@ -80,6 +80,14 @@
          :method          :post}
         "Go"]]]]]])
 
+(defn sidebar-sublist-item [label & attributes]
+  [:li [:a.link-dark.rounded
+        (into {:id label :href "#"} attributes)
+        label]])
+
+(defn sidebar-sublist [& r]
+  (into [:ul.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small] r))
+
 (defn sidebar-list [list-name id]
   (let [collapse-id (format "%s-collapse" id)]
     [:li.mb-1
@@ -89,33 +97,43 @@
       list-name]
      [:div.collapse
       {:id collapse-id}
-      [:ul.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small
-       {:id id}]]]))
+      (sidebar-sublist {:id id})]]))
 
 (defn sidebar []
   [:ul.list-unstyled.ps-0
    (sidebar-list "Rooms" "roomList")
    (sidebar-list "Users" "userList")])
 
+(defn room-change-link [room-name & attributes]
+  [:a#roomChangeLink.link-primary
+   (into
+     {:data-bs-toggle "modal"
+      :data-bs-target "#changeRoomModal"}
+     attributes)
+   room-name])
+
+(defn notifications-pane [& r]
+  (into [:div#notifications] r))
+
 (defn chat-pane [room-name]
   [:div#chat.h-100
    [:p.p-2.border
     [:b "You are in room "]
-    [:a#roomChangeLink.link-primary
-     {:data-bs-toggle "modal"
-      :data-bs-target "#changeRoomModal"}
-     room-name]]
+    (room-change-link room-name)]
    room-create-modal
-   [:div
-    [:div#notifications]]])
+   [:div.p-2
+    (notifications-pane)]])
 
-(defn chat-prompt [room-name]
+(defn chat-prompt
+  [room-name & attributes]
   [:input#chatPrompt.form-control
-   {:name         "chat-message"
-    :placeholder  (format "Message #%s" room-name)
-    :autocomplete "off"}])
+   (into
+     {:name         "chat-message"
+      :placeholder  (format "Message #%s" room-name)
+      :autocomplete "off"}
+     attributes)])
 
-(defn chat-page [{:keys [params session cookies] :as _request}]
+(defn chat-page [{:keys [params] :as _request}]
   (let [{:keys [room-name username]} params]
     (html5
       [:div.row.border.h-100

@@ -79,7 +79,6 @@
                                          {:username  "Mark"
                                           :room-name "public"}))))))
                :post (fn [request]
-                       (println "LOGGING IN TO CHAT!!")
                        (ok (chat-pages/chat-page request)))}]
      ["/cards" {:handler (fn [request] (ok decoder-pages/cards))}]
      ["/submitClues" {:post (fn [request]
