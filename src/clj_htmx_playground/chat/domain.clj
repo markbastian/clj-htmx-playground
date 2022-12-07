@@ -31,8 +31,13 @@
 (defn occupied-rooms [db]
   (->> (d/q all-rooms-query db) sort (map room-name->li)))
 
+(defn username->li [username]
+  [:li [:a.link-dark.rounded
+        {:id      username
+         :href    ""}
+        username]])
 (defn all-users [db]
-  (->> (d/q all-users-query db) sort (map room-name->li)))
+  (->> (d/q all-users-query db) sort (map username->li)))
 
 (def all-ws-query
   '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
