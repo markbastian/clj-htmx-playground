@@ -3,12 +3,9 @@
     [clj-htmx-playground.chat.pages :as chat-pages]
     [clojure.pprint :as pp]
     [datascript.core :as d]
-    [jsonista.core :as j]
+    [clj-htmx-playground.utils :as u]
     [hiccup.page :refer [html5]]
     [ring.adapter.jetty9 :as jetty]))
-
-(defn to-json-str [m]
-  (j/write-value-as-string m j/keyword-keys-object-mapper))
 
 (def all-rooms-query
   '[:find [?room-name ...]
@@ -31,7 +28,7 @@
                 {:ws-send "true"
                  :name    "change-room"
                  :method  :post
-                 :hx-vals (to-json-str {:room-name room-name})})))))
+                 :hx-vals (u/to-json-str {:room-name room-name})})))))
 
 (defn all-users [db]
   (->> (d/q all-users-query db)
@@ -50,7 +47,7 @@
 
 (defn update-chat-prompt [db username]
   (let [{:keys [ws room-name]} (d/entity db [:username username])
-        html (chat-pages/chat-prompt room-name {:autofocus "true"
+        html (chat-pages/chat-prompt room-name {:autofocus   "true"
                                                 :hx-swap-oob "true"})]
     (jetty/send! ws (html5 html))))
 

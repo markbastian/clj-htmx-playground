@@ -1,27 +1,24 @@
 (ns clj-htmx-playground.chat.pages
-  (:require [clojure.java.io :as io]
-            [hiccup.page :refer [html5 include-css include-js]]))
+  (:require
+    [clj-htmx-playground.utils :as u]
+    [clojure.java.io :as io]
+    [hiccup.page :refer [html5 include-css include-js]]))
 
 (def show-chat-login
   [:form.container
    [:div.form-group
-    [:h3 "Simple Chat"]
-    [:h2 "Join a room!"]
-    [:label "Room"]
-    [:input.form-control
-     {:name         "room-name"
-      :placeholder  "Enter room name"
-      :autocomplete "off"}]
-    [:label "Username"]
+    [:h4.text-center "Welcome to Markchat!"]
     [:input.form-control
      {:name         "username"
       :placeholder  "Enter username"
       :autocomplete "off"}]]
-   [:button.btn.btn-primary
-    {:type      "submit"
-     :hx-post   "/chat"
-     :hx-target "#app"}
-    "Join"]])
+   [:div.d-grid.gap-2
+    [:button.btn.btn-primary.btn-dark
+     {:type      "submit"
+      :hx-post   "/chat"
+      :hx-target "#app"
+      :hx-vals   (u/to-json-str {:room-name "public"})}
+     "Join"]]])
 
 (defn wrap-as-page [content]
   (html5
@@ -144,3 +141,39 @@
        [:form.fixed-bottom
         {:ws-send "true" :name "chat-message" :method :post}
         (chat-prompt room-name)]])))
+
+[:nav.navbar.navbar-expand-lg.bg-light
+ [:div.container-fluid
+  [:button.navbar-toggler
+   {:type           "button"
+    :data-bs-toggle "collapse"
+    :data-bs-target "#navbarTogglerDemo01"
+    :aria-controls  "navbarTogglerDemo01"}
+   [:span.navbar-toggler-icon]]
+  [:div#navbarTogglerDemo01.collapse.navbar-collapse
+   [:ul.navbar-nav.me-auto.mb-2.mb-lg-0
+    [:li.nav-item.dropdown
+     [:a.nav-link.dropdown-toggle
+      {:href           "#"
+       :role           "button"
+       :data-bs-toggle "dropdown"}
+      "Users"]
+     [:ul.dropdown-menu
+      [:li [:a.dropdown-item {:href "#"} "Action"]]
+      [:li [:a.dropdown-item {:href "#"} "Another action"]]
+      [:li [:hr.dropdown-divider]]
+      [:li [:a.dropdown-item {:href "#"} "Something else here"]]]]
+    [:li.nav-item.dropdown
+     [:a.nav-link.dropdown-toggle
+      {:href           "#"
+       :role           "button"
+       :data-bs-toggle "dropdown"}
+      "Rooms"]
+     [:ul.dropdown-menu
+      [:li [:a.dropdown-item {:href "#"} "Action"]]
+      [:li [:a.dropdown-item {:href "#"} "Another action"]]
+      [:li [:hr.dropdown-divider]]
+      [:li [:a.dropdown-item {:href "#"} "Something else here"]]]]]
+   [:form.d-flex {:role "search"}
+    [:input.form-control.me-2 {:type "search" :placeholder "Search" :aria-label "Search"}]
+    [:button.btn.btn-outline-success {:type "submit"} "Search"]]]]]
