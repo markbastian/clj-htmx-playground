@@ -14,11 +14,11 @@
              :username {:db/unique :db.unique/identity}})
 
 (def config
-  {::jetty9/server {:host    "0.0.0.0"
-                    :port    3000
-                    :join?   false
-                    :conn    (d/create-conn schema)
-                    :handler #'web/handler}})
+  {::jetty9/server   {:host    "0.0.0.0"
+                      :port    3000
+                      :join?   false
+                      :conn    (d/create-conn schema)
+                      :handler #'web/handler}})
 
 (defonce ^:dynamic *system* nil)
 
