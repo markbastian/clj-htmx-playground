@@ -1,7 +1,6 @@
 (ns clj-htmx-playground.chat.domain
   (:require
     [clj-htmx-playground.chat.pages :as chat-pages]
-    [clojure.pprint :as pp]
     [datascript.core :as d]
     [clj-htmx-playground.utils :as u]
     [hiccup.page :refer [html5]]
@@ -96,28 +95,9 @@
         (broadcast-update-user-list db-after)
         (update-chat-prompt db-after username)))))
 
-(defn leave-chat [{:keys [conn]} username]
-  (let [{:keys [room-name]} (d/entity @conn [:username username])
-        {:keys [db-after]} (d/transact! conn [[:db/retractEntity [:username username]]])]
+(defn leave-chat [{:keys [db-before db-after]} username]
+  (let [{:keys [room-name]} (d/entity db-before [:username username])]
     (broadcast-leave-room db-after username room-name)
     (broadcast-update-room-list db-after)
     (broadcast-update-user-list db-after)))
 
-(defmulti on-text-handler (fn [_ctx json]
-                            (get-in json [:HEADERS :HX-Trigger-Name])))
-
-(defmethod on-text-handler :default [_ json]
-  (println "UNKNOWN DISPATCH VALUE")
-  (pp/pprint json)
-  (println "END UNKNOWN DISPATCH VALUE"))
-
-(defmethod on-text-handler "chat-message" [{:keys [path-params conn] :as _context}
-                                           {:keys [chat-message] :as _json}]
-  (let [{:keys [username]} path-params
-        {:keys [room-name]} (d/entity @conn [:username username])]
-    (update-chat-prompt @conn username)
-    (broadcast-chat-message @conn username room-name chat-message)))
-
-(defmethod on-text-handler "change-room" [{:keys [path-params] :as context} {:keys [room-name]}]
-  (let [{:keys [username]} path-params]
-    (join-room context username room-name)))

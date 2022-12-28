@@ -6,6 +6,10 @@ A Clojure project containing examples of how to use htmx.
 
 TBD
 
+## Resources
+
+Words: https://www.wordgamedictionary.com/english-word-list/download/english.txt
+
 ## License
 
 Copyright © 2022 Mark Bastian

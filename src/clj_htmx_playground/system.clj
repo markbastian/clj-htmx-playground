@@ -1,5 +1,6 @@
 (ns clj-htmx-playground.system
   (:require
+    [clojure.tools.logging :as log]
     [datascript.core :as d]
     [parts.ring.adapter.jetty9.core :as jetty9]
     [integrant.core :as ig]
@@ -10,15 +11,33 @@
 ; https://www.w3schools.com/howto/howto_js_collapse_sidebar.asp
 ; https://www.w3schools.com/howto/howto_css_sidebar_responsive.asp
 
-(def schema {:ws       {:db/unique :db.unique/identity}
-             :username {:db/unique :db.unique/identity}})
+(def schema {:ws        {:db/unique :db.unique/identity}
+             :username  {:db/unique :db.unique/identity}
+             :game-name {:db/unique :db.unique/identity}})
+
+(def games (atom {}))
+
+(defmethod ig/init-key ::conn [_ {:keys [schema]}]
+  (log/debug "Creating in-memory datascript connection.")
+  (d/create-conn schema))
+
+(defmethod ig/init-key ::games [_ _]
+  (log/debug "Creating in-memory games map.")
+  games)
+
+(defmethod ig/halt-key! ::games [_ _]
+  (log/debug "Removing in-memory games map.")
+  (reset! games {}))
 
 (def config
-  {::jetty9/server   {:host    "0.0.0.0"
-                      :port    3000
-                      :join?   false
-                      :conn    (d/create-conn schema)
-                      :handler #'web/handler}})
+  {::conn          {:schema schema}
+   ::games         {}
+   ::jetty9/server {:host    "0.0.0.0"
+                    :port    3000
+                    :join?   false
+                    :conn    (ig/ref ::conn)
+                    :games   (ig/ref ::games)
+                    :handler #'web/handler}})
 
 (defonce ^:dynamic *system* nil)
 
@@ -35,4 +54,19 @@
 (comment
   (start)
   (stop)
-  (restart))
+  (restart)
+  (system)
+
+  (let [conn (::conn (system))]
+    @conn)
+
+  (let [conn (::conn (system))]
+    (d/entity @conn [:username "A"]))
+
+  (let [conn (::conn (system))]
+    (d/entity @conn [:username "C"]))
+
+  (let [games (::games (system))]
+    games)
+
+  )

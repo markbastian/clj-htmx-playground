@@ -1,6 +1,7 @@
-(ns clj-htmx-playground.decoder.domain
+(ns sneaky-words.domain
   (:require
     [clojure.java.io :as io]
+    [clojure.pprint :as pp]
     [clojure.string :as str]))
 
 ;; https://www.fgbradleys.com/rules/rules6/Decrypto%20-%20rules.pdf
@@ -11,7 +12,7 @@
 (def conjs (comp set (fnil conj #{})))
 
 ;; Game-specific utilities
-(defn generate-card []
+(defn ^:dynamic generate-card []
   (vec (take 3 (shuffle [1 2 3 4]))))
 
 (defonce
@@ -24,17 +25,15 @@
         (spit "wordlist.txt" f)
         (str/split-lines f)))))
 
-(defn generate-words []
+(defn ^:dynamic generate-words []
   (->> word-list shuffle (take 8)))
 
 ;; Predicates
 
-(defn initialized? [state]
+(defn words-initialized? [state]
   (and
-    (> (count (get-in state [:white :players])) 2)
-    (> (count (get-in state [:black :players])) 2)
-    (nil? (get-in state [:white :words]))
-    (nil? (get-in state [:black :words]))))
+    (get-in state [:white :words])
+    (get-in state [:black :words])))
 
 (defn game-over?
   ([state team]
@@ -42,8 +41,10 @@
      (or won? lost? false)))
   ([state] (some (partial game-over? state) [:white :black])))
 
-(defn can-resolve? [state team]
-  (every? (comp #{3} count (state team)) [:guess :card :clues :intercept-guess]))
+(defn can-resolve?
+  ([state team]
+   (every? (comp #{3} count (state team)) [:guess :card :clues :intercept-guess]))
+  ([state] (every? (partial can-resolve? state) [:black :white])))
 
 (defn can-provide-clues? [state team player-name]
   (let [{:keys [encryptor card clues]} (state team)]
@@ -77,15 +78,6 @@
 ;; Global actions taking the form of state = f(state). Functions of the form
 ;; state = f(state, team) are all supporting functions used by global action
 ;; functions.
-
-(defn start-game [state]
-  (if (initialized? state)
-    (let [[a b] (split-at 4 (generate-words))]
-      (-> state
-          (update :white merge {:words (mapv (fn [word] {:text word}) a)})
-          (update :black merge {:words (mapv (fn [word] {:text word}) b)})))
-    state))
-
 (defn advance-encryptor [state team]
   (-> state
       (assoc-in [team :encryptor] (first (get-in state [team :player-order])))
@@ -97,13 +89,24 @@
   ([state team]
    (cond-> state
            (and
-             (not (game-over? state team))
+             (words-initialized? state)
+             (not (game-over? state))
+             (get-in state [team :words])
              (nil? (get-in state [team :card]))
              (nil? (get-in state [team :encryptor])))
            (-> (assoc-in [team :card] (generate-card))
                (advance-encryptor team))))
   ([state]
    (reduce start-turn state [:white :black])))
+
+(defn start-game [state]
+  (if-not (words-initialized? state)
+    (let [[a b] (split-at 4 (generate-words))]
+      (-> state
+          (update :white merge {:words (mapv (fn [word] {:text word}) a)})
+          (update :black merge {:words (mapv (fn [word] {:text word}) b)})
+          start-turn))
+    state))
 
 (defn score-miscommunications [state team]
   (let [{:keys [guess card]} (state team)]
@@ -138,17 +141,18 @@
 
 (defn score-and-cleanup-turn
   ([state team]
-   (cond-> state
-           (and
-             (can-resolve? state team)
-             (not (game-over? state team)))
-           (-> (score-miscommunications team)
-               (score-intercepts team)
-               (store-previous-clues team)
-               (score-win team)
-               (score-lost team))))
+   (-> state
+       (score-miscommunications team)
+       (score-intercepts team)
+       (store-previous-clues team)
+       (score-win team)
+       (score-lost team)))
   ([state]
-   (reduce score-and-cleanup-turn state [:white :black])))
+   (if (and
+         (can-resolve? state)
+         (not (game-over? state)))
+     (reduce score-and-cleanup-turn state [:white :black])
+     state)))
 
 (defn resolve-winner-if-any [state]
   (let [b (state :black)
@@ -157,7 +161,6 @@
         winner (cond
                  (tied? state) (let [black-score (score-fn b)
                                      white-score (score-fn w)]
-                                 (println [black-score white-score])
                                  (cond
                                    (> black-score white-score) :black
                                    (> white-score black-score) :white
@@ -185,7 +188,9 @@
    (let [players (into
                    (get-in state [:white :players] #{})
                    (get-in state [:black :players] #{}))]
-     (if-not (get players player-name)
+     (if-not (or
+               (game-over? state)
+               (get players player-name))
        (let [team-to-join (or team (determine-team-to-join state))]
          (-> state
              (update-in [team-to-join :players] conjs player-name)
@@ -202,42 +207,47 @@
 (defn guess [state team player-name guess]
   (cond-> state
           (can-guess? state team player-name)
-          (assoc-in [team :guess] guess)))
+          (assoc-in [team :guess] guess)
+          true
+          (-> resolve-turn start-turn)))
 
 (defn intercept-guess [state team player-name intercept-guess]
   (cond-> state
           (can-intercept-guess? state team player-name)
-          (assoc-in [team :intercept-guess] intercept-guess)))
+          (assoc-in [team :intercept-guess] intercept-guess)
+          true
+          (-> resolve-turn start-turn)))
 
 (comment
-  (-> {}
-      (join-game :black "Sue")
-      (join-game :black "Pat")
-      (join-game :black "Sam")
-      (join-game :black "Billy")
-      (join-game :white "Mark")
-      (join-game :white "Jo")
-      (join-game :white "Mike")
-      (join-game :white "Willy")
-      (join-game :black "Willy")
-      (join-game :white "Willy")
-      start-game
-      start-turn
-      (provide-clues :white "Mark" ["Clue A" "Clue B" "Clue C"])
-      (provide-clues :black "Sue" ["Clue 1" "Clue 2" "Clue 3"])
-      (guess :white "Mike" [1 2 3])
-      (guess :black "Sam" [4 3 1])
-      (intercept-guess :white "Willy" [2 3 1])
-      (intercept-guess :black "Pat" [1 4 2])
-      resolve-turn
-      start-turn
-      (provide-clues :black "Pat" ["RED" "GREEN" "BLUE"])
-      (provide-clues :white "Jo" ["Dog" "Cat" "Pineapple"])
-      (guess :white "Mark" [1 2 3])
-      (guess :black "Billy" [4 3 1])
-      (intercept-guess :white "Jo" [2 3 1])
-      (intercept-guess :black "Pat" [1 4 2])
-      resolve-turn)
+  (with-redefs [generate-card (constantly [1 2 3])]
+    (-> {}
+        (join-game :black "Sue")
+        (join-game :black "Pat")
+        (join-game :black "Sam")
+        (join-game :black "Billy")
+        (join-game :white "Mark")
+        (join-game :white "Jo")
+        (join-game :white "Mike")
+        (join-game :white "Willy")
+        (join-game :black "Willy")
+        (join-game :white "Willy")
+        start-game
+        (provide-clues :white "Mark" ["Clue A" "Clue B" "Clue C"])
+        (provide-clues :black "Sue" ["Clue 1" "Clue 2" "Clue 3"])
+        (guess :white "Mike" [1 2 3])
+        (guess :black "Sam" [4 3 1])
+        (join-game :black "John")
+        (intercept-guess :white "Willy" [2 3 1])
+        (intercept-guess :black "Pat" [1 4 2])
+        (provide-clues :black "Pat" ["RED" "GREEN" "BLUE"])
+        (provide-clues :white "Jo" ["Dog" "Cat" "Pineapple"])
+        (guess :white "Mark" [1 2 3])
+        (guess :black "Billy" [4 3 1])
+        ;(intercept-guess :white "Jo" [2 3 1])
+        ;(intercept-guess :black "Pat" [1 4 2])
+        ;; Can't join when game is over
+        ;(join-game :black "After Over")
+        ))
   )
 
 
