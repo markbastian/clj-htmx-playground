@@ -13,39 +13,15 @@
     [_ :room-name ?room-name]])
 
 (def all-users-query
-  '[:find [?username ...]
-    :in $
-    :where
-    [_ :username ?username]])
+  '[:find [?username ...] :in $ :where [?e :username ?username]])
 
-(defn occupied-rooms [db]
-  (->> (d/q all-rooms-query db)
-       sort
-       (map (fn [room-name]
-              (chat-pages/sidebar-sublist-item
-                room-name
-                {:ws-send "true"
-                 :name    "change-room"
-                 :method  :post
-                 :hx-vals (u/to-json-str {:room-name room-name})})))))
+(defn occupied-rooms-html [db]
+  (chat-pages/occupied-rooms-list (d/q all-rooms-query db)))
 
-(defn all-users [db]
+(defn all-users-hml [db]
   (->> (d/q all-users-query db)
        sort
        (map chat-pages/sidebar-sublist-item)))
-
-(def all-ws-query
-  '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
-
-(def all-users-query
-  '[:find [?username ...] :in $ :where [?e :username ?username]])
-
-(def room-name->ws-query
-  '[:find [?ws ...]
-    :in $ ?room-name
-    :where
-    [?e :ws ?ws]
-    [?e :room-name ?room-name]])
 
 (def room-name->username-query
   '[:find [?username ...]
@@ -61,13 +37,13 @@
     (async-comms-api/send! user-manager username (html5 html))))
 
 (defn broadcast-update-room-list [user-manager db]
-  (let [html (chat-pages/sidebar-sublist {:id "roomList"} (occupied-rooms db))
+  (let [html (chat-pages/sidebar-sublist {:id "roomList"} (occupied-rooms-html db))
         room-list-html (html5 html)
         users (d/q all-users-query db)]
     (async-comms-api/broadcast! user-manager users room-list-html)))
 
 (defn broadcast-update-user-list [user-manager db]
-  (let [html (chat-pages/sidebar-sublist {:id "userList"} (all-users db))
+  (let [html (chat-pages/sidebar-sublist {:id "userList"} (all-users-hml db))
         room-list-html (html5 html)
         users (d/q all-users-query db)]
     (async-comms-api/broadcast! user-manager users room-list-html)))
@@ -95,9 +71,9 @@
   (let [{old-room-name :room-name} (d/entity @conn [:username username])]
     (when-not (= room-name old-room-name)
       (async-comms-api/send! user-manager username (html5
-                                        (chat-pages/room-change-link
-                                          room-name
-                                          {:hx-swap-oob "true"})))
+                                                     (chat-pages/room-change-link
+                                                       room-name
+                                                       {:hx-swap-oob "true"})))
       (let [{:keys [db-after]} (d/transact! conn [{:username username :room-name room-name}])]
         (broadcast-leave-room user-manager db-after username old-room-name)
         (broadcast-enter-room user-manager db-after username room-name)

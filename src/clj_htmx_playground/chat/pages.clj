@@ -79,6 +79,14 @@
         (into {:id label :href "#"} attributes)
         label]])
 
+(defn occupied-rooms-list [rooms-names]
+  (let [attrs {:ws-send "true" :name "change-room" :method :post}
+        f (fn [room-name]
+            (sidebar-sublist-item
+              room-name
+              (assoc attrs :hx-vals (u/to-json-str {:room-name room-name}))))]
+    (->> rooms-names sort (map f))))
+
 (defn sidebar-sublist [& r]
   (into [:ul.btn-toggle-nav.list-unstyled.fw-normal.pb-1.small] r))
 
