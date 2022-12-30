@@ -1,10 +1,10 @@
 (ns clj-htmx-playground.chat.domain
   (:require
     [clj-htmx-playground.chat.pages :as chat-pages]
+    [clj-htmx-playground.chat.api.async-comms-api :as async-comms-api]
     [datascript.core :as d]
     [clj-htmx-playground.utils :as u]
-    [hiccup.page :refer [html5]]
-    [ring.adapter.jetty9 :as jetty]))
+    [hiccup.page :refer [html5]]))
 
 (def all-rooms-query
   '[:find [?room-name ...]
@@ -37,6 +37,9 @@
 (def all-ws-query
   '[:find [?ws ...] :in $ :where [?e :ws ?ws]])
 
+(def all-users-query
+  '[:find [?username ...] :in $ :where [?e :username ?username]])
+
 (def room-name->ws-query
   '[:find [?ws ...]
     :in $ ?room-name
@@ -44,60 +47,67 @@
     [?e :ws ?ws]
     [?e :room-name ?room-name]])
 
-(defn update-chat-prompt [db username]
-  (let [{:keys [ws room-name]} (d/entity db [:username username])
+(def room-name->username-query
+  '[:find [?username ...]
+    :in $ ?room-name
+    :where
+    [?e :username ?username]
+    [?e :room-name ?room-name]])
+
+(defn update-chat-prompt [user-manager db username]
+  (let [{:keys [room-name]} (d/entity db [:username username])
         html (chat-pages/chat-prompt room-name {:autofocus   "true"
                                                 :hx-swap-oob "true"})]
-    (jetty/send! ws (html5 html))))
+    (async-comms-api/send! user-manager username (html5 html))))
 
-(defn broadcast-update-room-list [db]
+(defn broadcast-update-room-list [user-manager db]
   (let [html (chat-pages/sidebar-sublist {:id "roomList"} (occupied-rooms db))
-        room-list-html (html5 html)]
-    (doseq [client (d/q all-ws-query db)]
-      (jetty/send! client room-list-html))))
+        room-list-html (html5 html)
+        users (d/q all-users-query db)]
+    (async-comms-api/broadcast! user-manager users room-list-html)))
 
-(defn broadcast-update-user-list [db]
+(defn broadcast-update-user-list [user-manager db]
   (let [html (chat-pages/sidebar-sublist {:id "userList"} (all-users db))
-        room-list-html (html5 html)]
-    (doseq [client (d/q all-ws-query db)]
-      (jetty/send! client room-list-html))))
+        room-list-html (html5 html)
+        users (d/q all-users-query db)]
+    (async-comms-api/broadcast! user-manager users room-list-html)))
 
-(defn broadcast-to-room [db room-name message]
-  (let [html (chat-pages/notifications-pane
+(defn broadcast-to-room [user-manager db room-name message]
+  (let [users (d/q room-name->username-query db room-name)
+        html (chat-pages/notifications-pane
                {:hx-swap-oob "beforeend"}
                [:div [:i message]])]
-    (doseq [client (d/q room-name->ws-query db room-name)]
-      (jetty/send! client (html5 html)))))
+    (async-comms-api/broadcast! user-manager users (html5 html))))
 
-(defn broadcast-enter-room [db username new-room-name]
+(defn broadcast-enter-room [user-manager db username new-room-name]
   (let [message (format "%s joined %s" username new-room-name)]
-    (broadcast-to-room db new-room-name message)))
+    (broadcast-to-room user-manager db new-room-name message)))
 
-(defn broadcast-leave-room [db username old-room-name]
+(defn broadcast-leave-room [user-manager db username old-room-name]
   (let [message (format "%s left %s" username old-room-name)]
-    (broadcast-to-room db old-room-name message)))
+    (broadcast-to-room user-manager db old-room-name message)))
 
-(defn broadcast-chat-message [db username room-name message]
+(defn broadcast-chat-message [user-manager db username room-name message]
   (let [message (format "%s: %s" username message)]
-    (broadcast-to-room db room-name message)))
+    (broadcast-to-room user-manager db room-name message)))
 
-(defn join-room [{:keys [conn]} username room-name]
-  (let [{old-room-name :room-name ws :ws} (d/entity @conn [:username username])]
+(defn join-room [{:keys [user-manager conn]} username room-name]
+  (let [{old-room-name :room-name} (d/entity @conn [:username username])]
     (when-not (= room-name old-room-name)
-      (jetty/send! ws (html5
-                        (chat-pages/room-change-link
-                          room-name
-                          {:hx-swap-oob "true"})))
+      (async-comms-api/send! user-manager username (html5
+                                        (chat-pages/room-change-link
+                                          room-name
+                                          {:hx-swap-oob "true"})))
       (let [{:keys [db-after]} (d/transact! conn [{:username username :room-name room-name}])]
-        (broadcast-leave-room db-after username old-room-name)
-        (broadcast-enter-room db-after username room-name)
-        (broadcast-update-room-list db-after)
-        (broadcast-update-user-list db-after)
-        (update-chat-prompt db-after username)))))
+        (broadcast-leave-room user-manager db-after username old-room-name)
+        (broadcast-enter-room user-manager db-after username room-name)
+        (broadcast-update-room-list user-manager db-after)
+        (broadcast-update-user-list user-manager db-after)
+        (update-chat-prompt user-manager db-after username)))))
 
-(defn leave-chat [{:keys [db-before db-after]} username]
+(defn leave-chat [user-manager {:keys [db-before db-after]} username]
   (let [{:keys [room-name]} (d/entity db-before [:username username])]
-    (broadcast-leave-room db-after username room-name)
-    (broadcast-update-room-list db-after)
-    (broadcast-update-user-list db-after)))
+    (broadcast-leave-room user-manager db-after username room-name)
+    (broadcast-update-room-list user-manager db-after)
+    (broadcast-update-user-list user-manager db-after)))
 
