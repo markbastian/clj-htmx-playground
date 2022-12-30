@@ -3,4 +3,4 @@
              :as user-comms-jetty-ws-impl]))
 
 (defn ws-user [username ws]
-  (user-comms-jetty-ws-impl/->WebSocketUser username ws))
+  (user-comms-jetty-ws-impl/->WebSocketUser username ws :htmx))

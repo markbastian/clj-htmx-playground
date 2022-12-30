@@ -26,6 +26,14 @@
     [?e :username ?username]
     [?e :room-name ?room-name]])
 
+;; TODO
+(defprotocol IChatRenderer
+  (chat-prompt-message [this data])
+  (room-list-message [this data])
+  (user-list-message [this data])
+  (room-broadcast-message [this data])
+  (room-change-message [this data]))
+
 (defn update-chat-prompt [user-manager db username]
   (let [{:keys [room-name]} (d/entity db [:username username])
         message (html5 (chat-pages/chat-prompt room-name {:autofocus "true" :hx-swap-oob "true"}))]
