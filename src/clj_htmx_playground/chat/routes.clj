@@ -29,7 +29,7 @@
       (let [command {:command   :change-room
                      :username  username
                      :room-name room-name}]
-        (commands/handle-command context command))
+        (commands/handle context command))
       (do
         (jetty/send!
           ws
@@ -40,7 +40,7 @@
   (let [{:keys [username]} path-params
         json (u/read-json text-message)
         command (keyword (get-in json [:HEADERS :HX-Trigger-Name]))]
-    (commands/handle-command context (-> json
+    (commands/handle context (-> json
                                          (assoc
                                            :username username
                                            :command command)
@@ -51,14 +51,14 @@
         _ (log/debugf "on-close triggered for user: %s" username)
         _ (remove-user! users username)
         command {:command :leave-chat :username username}]
-    (commands/handle-command context command)))
+    (commands/handle context command)))
 
 (defn on-error [{:keys [users path-params] :as context} _ws err]
   (let [{:keys [username]} path-params
         _ (log/debugf "on-error triggered for user: %s" username)
         _ (remove-user! users username)
         command {:command :leave-chat :username username}]
-    (commands/handle-command context command)
+    (commands/handle context command)
     (println err)))
 
 (defn ws-upgrade-handler [context upgrade-request]

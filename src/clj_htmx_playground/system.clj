@@ -4,8 +4,7 @@
     [datascript.core :as d]
     [parts.ring.adapter.jetty9.core :as jetty9]
     [integrant.core :as ig]
-    [clj-htmx-playground.web :as web]
-    [clj-htmx-playground.chat.api.user-manager :as um]))
+    [clj-htmx-playground.web :as web]))
 
 ;;https://github.com/markbastian/conj2019/blob/master/src/main/clj/conj2019/full_demo/web/v0.clj
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
@@ -39,13 +38,14 @@
   {::conn          {:schema schema}
    ::users         {}
    ::games         {}
-   ::jetty9/server {:host         "0.0.0.0"
-                    :port         3000
-                    :join?        false
-                    :users        (ig/ref ::users)
-                    :conn         (ig/ref ::conn)
-                    :games        (ig/ref ::games)
-                    :handler      #'web/handler}})
+   ::jetty9/server {:host    "0.0.0.0"
+                    :port    3000
+                    :join?   false
+                    :users   (ig/ref ::users)
+                    :conn    (ig/ref ::conn)
+                    :games   (ig/ref ::games)
+                    :ws-max-idle-time (* 10 60 1000)
+                    :handler #'web/handler}})
 
 (defonce ^:dynamic *system* nil)
 
@@ -77,4 +77,12 @@
   (let [games (::games (system))]
     games)
 
+  (let [{:keys [db-before db-after]} (-> (d/empty-db schema)
+                                         (d/db-with [{:username "A" :room-name "RA"}
+                                                     {:username "B" :room-name "RB"}])
+                                         (d/with [[:db/retractEntity [:username "A"]]]))
+        room (:room-name (d/entity db-before [:username "A"]))]
+    (d/q
+      '[:find ?e . :in $ ?room-name :where [?e :room-name ?room-name]]
+      db-after room))
   )
