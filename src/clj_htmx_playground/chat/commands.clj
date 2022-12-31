@@ -12,17 +12,19 @@
     command
     (with-out-str (pp/pprint cmd))))
 
-;(defmethod handle-command :join-chat [{:keys [path-params] :as context}
-;                                      {:keys [username] :as _command}]
-;  (chat/join-room context username room-name))
-
-(defmethod handle-command :chat-message [{:keys [user-manager conn] :as _context}
-                                         {:keys [username chat-message] :as _cmd}]
+(defmethod handle-command :chat-message [{:keys [users conn]}
+                                         {:keys [username chat-message]}]
   (let [db @conn
         {:keys [room-name]} (d/entity db [:username username])]
-    (chat/update-chat-prompt user-manager db username)
-    (chat/broadcast-chat-message user-manager db username room-name chat-message)))
+    (chat/update-chat-prompt (@users username) db)
+    (chat/broadcast-chat-message @users db username room-name chat-message)))
 
-(defmethod handle-command :change-room [context
-                                        {:keys [username room-name] :as _cmd}]
-  (chat/join-room context username room-name))
+(defmethod handle-command :change-room [context {:keys [username room-name]}]
+  (chat/join-room (update context :users deref) username room-name))
+
+(defmethod handle-command :leave-chat [context {:keys [username] :as _cmd}]
+  (chat/leave-chat (update context :users deref) username))
+
+(defn handle [context command]
+  (let [effects (handle-command context command)]
+    ))

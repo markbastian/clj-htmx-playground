@@ -1,24 +1,35 @@
 (ns clj-htmx-playground.chat.routes
   (:require
-    [clj-htmx-playground.chat.api.user-manager-api :as user-manager-api]
-    [clj-htmx-playground.chat.domain :as chat]
     [clj-htmx-playground.chat.commands :as commands]
     [clj-htmx-playground.chat.pages :as chat-pages]
     [clj-htmx-playground.utils :as u]
-    [clojure.pprint :as pp]
     [clojure.tools.logging :as log]
     [ring.adapter.jetty9 :as jetty]
     [ring.util.http-response :refer [ok internal-server-error]]
     [clj-htmx-playground.ws-handlers :as ws-handlers]
-    [hiccup.page :refer [html5]]
-    [clj-htmx-playground.chat.api.user :as sender]))
+    [hiccup.page :refer [html5]]))
 
-(defn on-connect [{:keys [user-manager path-params] :as context} ws]
+(defn add-user! [state {:keys [username] :as m}]
+  (if-not (@state username)
+    (do
+      (log/debugf "Adding user: %s" username)
+      (swap! state assoc username m))
+    (log/debugf "User '%s' already exists. Not adding." username)))
+
+(defn remove-user! [state username]
+  (when-some [{:keys [username]} (@state username)]
+    (log/debugf "Removing user: %s" username)
+    (swap! state dissoc username)))
+
+(defn on-connect [{:keys [users path-params] :as context} ws]
   (let [{:keys [username room-name]} path-params]
-    (if (user-manager-api/add-user! user-manager (sender/ws-user username ws))
-      (commands/handle-command context {:command   :change-room
-                                        :username  username
-                                        :room-name room-name})
+    (if (add-user! users {:username  username
+                          :transport :ws
+                          :ws        ws})
+      (let [command {:command   :change-room
+                     :username  username
+                     :room-name room-name}]
+        (commands/handle-command context command))
       (do
         (jetty/send!
           ws
@@ -26,7 +37,6 @@
         (jetty/close! ws)))))
 
 (defn on-text [{:keys [path-params] :as context} _ws text-message]
-  (pp/pprint (select-keys context [:params :path-params :parameters]))
   (let [{:keys [username]} path-params
         json (u/read-json text-message)
         command (keyword (get-in json [:HEADERS :HX-Trigger-Name]))]
@@ -36,20 +46,20 @@
                                            :command command)
                                          (dissoc :HEADERS)))))
 
-(defn on-close [{:keys [user-manager path-params] :as context} ws _status-code _reason]
+(defn on-close [{:keys [users path-params] :as context} _ws _status-code _reason]
   (let [{:keys [username]} path-params
-        tx (user-manager-api/remove-user! user-manager username)]
-    (log/debugf "on-close triggered for user: %s" username)
-    (chat/leave-chat user-manager tx username)))
+        _ (log/debugf "on-close triggered for user: %s" username)
+        _ (remove-user! users username)
+        command {:command :leave-chat :username username}]
+    (commands/handle-command context command)))
 
-(defn on-error [{:keys [user-manager path-params] :as context} ws err]
+(defn on-error [{:keys [users path-params] :as context} _ws err]
   (let [{:keys [username]} path-params
-        tx (user-manager-api/remove-user! user-manager username)]
-    (log/debugf "on-error triggered for user: %s" username)
-    (chat/leave-chat user-manager tx username)
-    (println ws)
-    (println err)
-    (println "ERROR")))
+        _ (log/debugf "on-error triggered for user: %s" username)
+        _ (remove-user! users username)
+        command {:command :leave-chat :username username}]
+    (commands/handle-command context command)
+    (println err)))
 
 (defn ws-upgrade-handler [context upgrade-request]
   (let [provided-subprotocols (:websocket-subprotocols upgrade-request)

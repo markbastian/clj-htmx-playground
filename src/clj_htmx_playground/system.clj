@@ -19,9 +19,9 @@
 
 (def games (atom {}))
 
-(defmethod ig/init-key ::user-manager [_ _]
-  (log/debug "Creating datascript user manager")
-  (um/user-manager (atom {})))
+(defmethod ig/init-key ::users [_ _]
+  (log/debug "Creating user map")
+  (atom {}))
 
 (defmethod ig/init-key ::conn [_ {:keys [schema]}]
   (log/debug "Creating in-memory datascript connection.")
@@ -37,12 +37,12 @@
 
 (def config
   {::conn          {:schema schema}
-   ::user-manager  {}
+   ::users         {}
    ::games         {}
    ::jetty9/server {:host         "0.0.0.0"
                     :port         3000
                     :join?        false
-                    :user-manager (ig/ref ::user-manager)
+                    :users        (ig/ref ::users)
                     :conn         (ig/ref ::conn)
                     :games        (ig/ref ::games)
                     :handler      #'web/handler}})
@@ -68,13 +68,8 @@
   (let [conn (::conn (system))]
     @conn)
 
-  (let [user-manager (::user-manager (system))]
-    (um/get-user user-manager "AAA")
-    ;(um/add-user! user-manager {:ws 3 :username "Mark"})
-    )
-
-  (let [conn (::conn (system))]
-    (d/entity @conn [:username "A"]))
+  (let [users (::users (system))]
+    users)
 
   (let [conn (::conn (system))]
     (d/entity @conn [:username "C"]))
