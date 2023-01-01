@@ -79,6 +79,8 @@
         (into {:id label :href "#"} attributes)
         label]])
 
+;; TODO - should probably put "command" as key in hx-vals rather
+;; than relying on name as a [:HEADERS :HX-Trigger-Name] param.
 (defn occupied-rooms-list [rooms-names]
   (let [attrs {:ws-send "true" :name "change-room" :method :post}
         f (fn [room-name]
