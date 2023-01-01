@@ -2,7 +2,7 @@
   (:require
     [clj-htmx-playground.chat.pages :as chat-pages]
     [clj-htmx-playground.chat.queries :as chat-queries]
-    [clj-htmx-playground.client-api :as client-api]
+    [sca.api.client :as client-api]
     [hiccup.page :refer [html5]]))
 
 (defn all-usernames-html [db]

@@ -1,8 +1,10 @@
 (ns clj-htmx-playground.chat.routes
   (:require
-    [clj-htmx-playground.chat.commands :as commands]
     [clj-htmx-playground.chat.pages :as chat-pages]
-    [clj-htmx-playground.client-api :as client-api]
+    [clj-htmx-playground.chat.commands]
+    [clj-htmx-playground.chat.events]
+    [sca.api.client :as client-api]
+    [sca.api.lifecycle :as lifecycle-api]
     [clj-htmx-playground.utils :as u]
     [clojure.tools.logging :as log]
     [ring.adapter.jetty9 :as jetty]
@@ -19,7 +21,7 @@
       (let [command {:command   :change-room
                      :username  username
                      :room-name room-name}]
-        (commands/sync-handler context command))
+        (lifecycle-api/sync-handler context command))
       (do
         (jetty/send!
           ws
@@ -30,25 +32,25 @@
   (let [{:keys [username]} path-params
         json (u/read-json text-message)
         command (keyword (get-in json [:HEADERS :HX-Trigger-Name]))]
-    (commands/sync-handler context (-> json
-                                       (assoc
-                                         :username username
-                                         :command command)
-                                       (dissoc :HEADERS)))))
+    (lifecycle-api/sync-handler context (-> json
+                                            (assoc
+                                              :username username
+                                              :command command)
+                                            (dissoc :HEADERS)))))
 
 (defn on-close [{:keys [clients path-params] :as context} _ws _status-code _reason]
   (let [{:keys [username]} path-params
         _ (log/debugf "on-close triggered for user: %s" username)
         _ (client-api/remove-client! clients username)
         command {:command :leave-chat :username username}]
-    (commands/sync-handler context command)))
+    (lifecycle-api/sync-handler context command)))
 
 (defn on-error [{:keys [clients path-params] :as context} _ws err]
   (let [{:keys [username]} path-params
         _ (log/debugf "on-error triggered for user: %s" username)
         _ (client-api/remove-client! clients username)
         command {:command :leave-chat :username username}]
-    (commands/sync-handler context command)
+    (lifecycle-api/sync-handler context command)
     (println err)))
 
 (defn ws-upgrade-handler [context upgrade-request]

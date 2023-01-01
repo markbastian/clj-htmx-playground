@@ -1,4 +1,4 @@
-(ns clj-htmx-playground.client-api
+(ns sca.api.client
   (:require [clojure.tools.logging :as log]
             [ring.adapter.jetty9 :as jetty]))
 
