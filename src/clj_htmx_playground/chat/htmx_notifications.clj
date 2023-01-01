@@ -1,4 +1,4 @@
-(ns clj-htmx-playground.chat.htmx-events
+(ns clj-htmx-playground.chat.htmx-notifications
   (:require
     [clj-htmx-playground.chat.pages :as chat-pages]
     [clj-htmx-playground.chat.queries :as chat-queries]

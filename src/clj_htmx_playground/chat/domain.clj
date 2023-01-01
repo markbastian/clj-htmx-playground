@@ -1,7 +1,7 @@
 (ns clj-htmx-playground.chat.domain
   (:require
     [clj-htmx-playground.chat.queries :as chat-queries]
-    [clj-htmx-playground.chat.htmx-events :as htmx-events]
+    [clj-htmx-playground.chat.htmx-notifications :as htmx-events]
     [datascript.core :as d]))
 
 ;; These are the real actions that can occur.
