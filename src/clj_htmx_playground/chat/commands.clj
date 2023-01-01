@@ -21,7 +21,18 @@
 (defmethod handle-command :leave-chat [context {:keys [username]}]
   (chat/leave-chat (update context :clients deref) username))
 
-(defn sync-handler [{:keys [clients] :as context} command]
-  (let [events (handle-command context command)]
-    (doseq [event events]
-      (events/handle-event context event))))
+(defn sync-handler [{:keys [clients conn] :as context} command]
+  ;; TODO - Precompute this
+  (let [clients-by-tx (->> @clients
+                           vals
+                           (reduce (fn [acc {:keys [transform client-id] :as client}]
+                                     (assoc-in acc [transform client-id] client)) {}))
+        events (handle-command context command)]
+    (doseq [[tx clients] clients-by-tx
+            event events]
+      (events/handle-event
+        (assoc context
+          :clients clients
+          :db @conn
+          :transform tx)
+        event))))

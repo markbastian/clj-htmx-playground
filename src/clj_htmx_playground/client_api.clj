@@ -14,8 +14,6 @@
     (log/debugf "Removing client: %s" client-id)
     (swap! state dissoc client-id)))
 
-(defmulti transform :event)
-
 (defmulti send! (fn [{:keys [transport] :as _user} _message] transport))
 
 (defmethod send! :ws [{:keys [client-id ws]} message]
