@@ -2,6 +2,7 @@
   (:require
     [clj-htmx-playground.chat.commands :as commands]
     [clj-htmx-playground.chat.pages :as chat-pages]
+    [clj-htmx-playground.client-api :as client-api]
     [clj-htmx-playground.utils :as u]
     [clojure.tools.logging :as log]
     [ring.adapter.jetty9 :as jetty]
@@ -9,27 +10,16 @@
     [clj-htmx-playground.ws-handlers :as ws-handlers]
     [hiccup.page :refer [html5]]))
 
-(defn add-user! [state {:keys [username] :as m}]
-  (if-not (@state username)
-    (do
-      (log/debugf "Adding user: %s" username)
-      (swap! state assoc username m))
-    (log/debugf "User '%s' already exists. Not adding." username)))
-
-(defn remove-user! [state username]
-  (when-some [{:keys [username]} (@state username)]
-    (log/debugf "Removing user: %s" username)
-    (swap! state dissoc username)))
-
-(defn on-connect [{:keys [users path-params] :as context} ws]
+(defn on-connect [{:keys [clients path-params] :as context} ws]
   (let [{:keys [username room-name]} path-params]
-    (if (add-user! users {:username  username
-                          :transport :ws
-                          :ws        ws})
+    (if (client-api/add-client! clients {:client-id username
+                                         :transport :ws
+                                         :ws        ws
+                                         :transform :htmx})
       (let [command {:command   :change-room
                      :username  username
                      :room-name room-name}]
-        (commands/handle context command))
+        (commands/sync-handler context command))
       (do
         (jetty/send!
           ws
@@ -40,25 +30,25 @@
   (let [{:keys [username]} path-params
         json (u/read-json text-message)
         command (keyword (get-in json [:HEADERS :HX-Trigger-Name]))]
-    (commands/handle context (-> json
-                                         (assoc
-                                           :username username
-                                           :command command)
-                                         (dissoc :HEADERS)))))
+    (commands/sync-handler context (-> json
+                                       (assoc
+                                         :username username
+                                         :command command)
+                                       (dissoc :HEADERS)))))
 
-(defn on-close [{:keys [users path-params] :as context} _ws _status-code _reason]
+(defn on-close [{:keys [clients path-params] :as context} _ws _status-code _reason]
   (let [{:keys [username]} path-params
         _ (log/debugf "on-close triggered for user: %s" username)
-        _ (remove-user! users username)
+        _ (client-api/remove-client! clients username)
         command {:command :leave-chat :username username}]
-    (commands/handle context command)))
+    (commands/sync-handler context command)))
 
-(defn on-error [{:keys [users path-params] :as context} _ws err]
+(defn on-error [{:keys [clients path-params] :as context} _ws err]
   (let [{:keys [username]} path-params
         _ (log/debugf "on-error triggered for user: %s" username)
-        _ (remove-user! users username)
+        _ (client-api/remove-client! clients username)
         command {:command :leave-chat :username username}]
-    (commands/handle context command)
+    (commands/sync-handler context command)
     (println err)))
 
 (defn ws-upgrade-handler [context upgrade-request]

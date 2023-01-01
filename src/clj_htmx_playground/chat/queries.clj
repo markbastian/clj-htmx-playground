@@ -25,3 +25,10 @@
 
 (defn current-room [db username]
   (:room-name (d/entity db [:username username])))
+
+(defn room-exists? [db room-name]
+  (let [q '[:find ?e . :in $ ?room-name :where [?e :room-name ?room-name]]]
+    (some? (d/q q db room-name))))
+
+(defn chat-user-exists? [db username]
+  (some? (d/entity db [:username username])))

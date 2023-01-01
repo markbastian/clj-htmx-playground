@@ -17,6 +17,7 @@
                  [metosin/reitit "0.5.18"]
                  [metosin/ring-http-response "0.9.3"]
                  [org.clojure/clojure "1.11.1"]
+                 [org.clojure/core.async "1.6.673"]
                  [org.clojure/tools.logging "1.2.4"]
                  [ch.qos.logback/logback-classic "1.4.5"]
                  [org.xerial/sqlite-jdbc "3.40.0.0"]

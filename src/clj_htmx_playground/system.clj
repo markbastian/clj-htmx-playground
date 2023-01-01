@@ -10,15 +10,18 @@
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
 ; https://www.w3schools.com/howto/howto_js_collapse_sidebar.asp
 ; https://www.w3schools.com/howto/howto_css_sidebar_responsive.asp
+;https://codeopinion.com/commands-events-whats-the-difference/
 
-(def schema {:ws        {:db/unique :db.unique/identity}
-             :user-id   {:db/unique :db.unique/identity}
-             :username  {:db/unique :db.unique/identity}
-             :game-name {:db/unique :db.unique/identity}})
+; Someday
+;(def clients-schema {:ws        {:db/unique :db.unique/identity}
+;                   :username  {:db/unique :db.unique/identity}})
+
+(def chat-schema {:username {:db/unique :db.unique/identity}})
 
 (def games (atom {}))
 
-(defmethod ig/init-key ::users [_ _]
+;; TODO - Change to a dsdb
+(defmethod ig/init-key ::clients [_ _]
   (log/debug "Creating user map")
   (atom {}))
 
@@ -35,17 +38,18 @@
   (reset! games {}))
 
 (def config
-  {::conn          {:schema schema}
-   ::users         {}
+  {::conn          {:schema chat-schema}
+   ::clients       {}
    ::games         {}
-   ::jetty9/server {:host    "0.0.0.0"
-                    :port    3000
-                    :join?   false
-                    :users   (ig/ref ::users)
-                    :conn    (ig/ref ::conn)
-                    :games   (ig/ref ::games)
+   ::jetty9/server {:host             "0.0.0.0"
+                    :port             3000
+                    :join?            false
+                    :clients          (ig/ref ::clients)
+                    ;; TODO - Rename to chat-db
+                    :conn             (ig/ref ::conn)
+                    :games            (ig/ref ::games)
                     :ws-max-idle-time (* 10 60 1000)
-                    :handler #'web/handler}})
+                    :handler          #'web/handler}})
 
 (defonce ^:dynamic *system* nil)
 
@@ -68,8 +72,8 @@
   (let [conn (::conn (system))]
     @conn)
 
-  (let [users (::users (system))]
-    users)
+  (let [clients (::clients (system))]
+    clients)
 
   (let [conn (::conn (system))]
     (d/entity @conn [:username "C"]))
@@ -77,7 +81,7 @@
   (let [games (::games (system))]
     games)
 
-  (let [{:keys [db-before db-after]} (-> (d/empty-db schema)
+  (let [{:keys [db-before db-after]} (-> (d/empty-db chat-schema)
                                          (d/db-with [{:username "A" :room-name "RA"}
                                                      {:username "B" :room-name "RB"}])
                                          (d/with [[:db/retractEntity [:username "A"]]]))

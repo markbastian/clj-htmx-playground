@@ -5,7 +5,7 @@
     [datascript.core :as d]))
 
 ;; These are the real actions that can occur.
-;; Consider -- Do all things with a user or users arg need to be downstream
+;; Consider -- Do all things with a user or clients arg need to be downstream
 ;; effects? How do I handle the "different transport" issue? E.g. how do
 ;; update-chat-prompt & update-room-link change for TCP vs htmx vs SPA?
 ;; TODO - Refine conditional logic on some of the broadcasts, esp. if events are
@@ -13,35 +13,45 @@
 ;; Actually, I've got this wrong. The htmx specific derivations of these items
 ;; are subscriptions to events. Each subscriber of a given type knows how to
 ;; handle events in their own way. In order to make this work, I should put all
-;; events in a ns then the users (perhaps these should be subscribers or
+;; events in a ns then the clients (perhaps these should be subscribers or
 ;; connections) will all interpret the events rather than the events being
 ;; pushed out.
 
-(defn create-chat-message [{:keys [users conn]} username chat-message]
-  ;; We _should_ track the message in a queue or something and then these items
-  ;; are just effects.
-  (let [room-name (chat-queries/current-room @conn username)]
-    (htmx-events/update-chat-prompt (users username) room-name)
-    (htmx-events/broadcast-chat-message users @conn username room-name chat-message)))
+;;TODO - Put these in a db.
+(defn create-chat-message [{:keys [conn]} username chat-message]
+  [{:event        :chat-message-created
+    :username     username
+    :room-name    (chat-queries/current-room @conn username)
+    :chat-message chat-message}])
 
-(defn join-room [{:keys [users conn]} username room-name]
-  (let [{old-room-name :room-name} (d/entity @conn [:username username])
-        user (users username)]
+(defn join-room [{:keys [conn]} username room-name]
+  (let [tx-data [{:username username :room-name room-name}]
+        {:keys [db-before db-after]} (d/transact! conn tx-data)
+        old-room-name (chat-queries/current-room db-before username)]
     (when-not (= room-name old-room-name)
-      (let [db (:db-after (d/transact! conn [{:username username :room-name room-name}]))]
-        (htmx-events/update-room-link user room-name)
-        (htmx-events/update-chat-prompt user room-name)
-        (htmx-events/broadcast-leave-room users db username old-room-name)
-        (htmx-events/broadcast-enter-room users db username room-name)
-        (htmx-events/broadcast-update-room-list users db)
-        (htmx-events/broadcast-update-user-list users db)))))
+      (let [old-room-removed? (not (chat-queries/room-exists? db-after old-room-name))
+            new-room-created? (not (chat-queries/room-exists? db-before room-name))
+            user-already-exists? (chat-queries/chat-user-exists? db-before username)]
+        (cond->
+          [(if user-already-exists?
+             {:event :user-left-room :username username :room-name old-room-name}
+             {:event :user-joined-chat :username username})
+           {:event :user-entered-room :username username :room-name room-name}]
+          old-room-removed?
+          (conj {:event :room-deleted :room-name old-room-name})
+          new-room-created?
+          (conj {:event :room-created :room-name room-name}))))))
 
-(defn leave-chat [{:keys [users conn]} username]
-  (let [room-name (chat-queries/current-room @conn username)
-        tx-data [[:db/retractEntity [:username username]]]
-        db (:db-after (d/transact! conn tx-data))]
-    ;; Events
-    (htmx-events/broadcast-leave-room users db username room-name)
-    (htmx-events/broadcast-update-room-list users db)
-    (htmx-events/broadcast-update-user-list users db)))
+(defn leave-chat [{:keys [conn]} username]
+  (let [tx [[:db/retractEntity [:username username]]]
+        {:keys [db-before db-after]} (d/transact! conn tx)]
+    (let [room-name (chat-queries/current-room db-before username)
+          room-removed? (not (chat-queries/room-exists? db-after room-name))]
+      (cond->
+        [{:event :user-left-room :username username :room-name room-name}
+         {:event :user-left-chat :username username :room-name room-name}]
+        room-removed?
+        (conj {:event :room-deleted :room-name room-name})))))
+
+
 
