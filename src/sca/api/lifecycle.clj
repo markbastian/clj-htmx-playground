@@ -7,10 +7,10 @@
   (let [f (fn [acc {:keys [transform client-id] :as client}]
             (assoc-in acc [transform client-id] client))
         clients-by-tx (->> @clients vals (reduce f {}))
-        events (command-api/handle-command context command)]
+        events (command-api/dispatch-command context command)]
     (doseq [[tx clients] clients-by-tx
             event events]
-      (event-api/handle-event
+      (event-api/process-event
         (assoc context
           :clients clients
           :db @conn

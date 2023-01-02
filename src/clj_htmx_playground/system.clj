@@ -10,7 +10,8 @@
 ;; https://arhamjain.com/2021/11/22/nim-simple-chat.html
 ; https://www.w3schools.com/howto/howto_js_collapse_sidebar.asp
 ; https://www.w3schools.com/howto/howto_css_sidebar_responsive.asp
-;https://codeopinion.com/commands-events-whats-the-difference/
+; https://codeopinion.com/commands-events-whats-the-difference/
+; https://hackernoon.com/the-3-levels-of-clean-event-driven-architecture
 
 ; Someday
 ;(def clients-schema {:ws        {:db/unique :db.unique/identity}
