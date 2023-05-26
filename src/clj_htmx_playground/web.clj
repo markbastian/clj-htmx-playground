@@ -1,6 +1,5 @@
 (ns clj-htmx-playground.web
   (:require
-    [clojure.pprint :as pp]
     [reitit.ring :as ring]
     [reitit.ring.middleware.muuntaja :as muuntaja]
     [reitit.ring.coercion :as coercion]
@@ -8,7 +7,11 @@
     [ring.util.http-response :refer [ok not-found]]
     [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
     [ring.middleware.json :refer [wrap-json-response]]
+    [ring.middleware.reload :refer [wrap-reload]]
+    [ring.middleware.resource :refer [wrap-resource]]
+    [ring.middleware.file :refer [wrap-file]]
     [clj-htmx-playground.examples.sidebar :as sidebar]
+    [clj-htmx-playground.examples.pirates.routes :as pirates]
     [clj-htmx-playground.examples.bootstrap-sidebar :as bootstrap-sidebar]
     [clj-htmx-playground.examples.modal :as modal]
     [clj-htmx-playground.examples.offcanvas :as offcanvas]
@@ -31,21 +34,27 @@
       ["/flex" {:handler (fn [_] (ok bs.flex/flex))}]]]
     [sidebar/routes
      modal/routes
-     ss/routes]))
+     ss/routes
+     pirates/routes]))
 
+;; TODO - Add wrap-reload middleware
 (def handler
-  (ring/ring-handler
-    (ring/router
-      routes
-      {:data {:middleware [[wrap-defaults
-                            (-> site-defaults
-                                (update :security dissoc :anti-forgery)
-                                (update :security dissoc :content-type-options)
-                                (update :responses dissoc :content-types))]
-                           ;wrap-params
-                           wrap-json-response
-                           parameters/parameters-middleware
-                           muuntaja/format-request-middleware
-                           coercion/coerce-response-middleware
-                           coercion/coerce-request-middleware]}})
-    (constantly (not-found "Not found"))))
+  (wrap-reload
+    (->
+      (ring/ring-handler
+        (ring/router
+          routes
+          {:data {:middleware [[wrap-defaults
+                                (-> site-defaults
+                                    (update :security dissoc :anti-forgery)
+                                    (update :security dissoc :content-type-options)
+                                    (update :responses dissoc :content-types))]
+                               ;wrap-params
+                               wrap-json-response
+                               parameters/parameters-middleware
+                               muuntaja/format-request-middleware
+                               coercion/coerce-response-middleware
+                               coercion/coerce-request-middleware]}})
+        (constantly (not-found "Not found")))
+      (wrap-resource "/clj_htmx_playground")
+      (wrap-file "resources/clj_htmx_playground"))))
