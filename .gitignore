@@ -16,4 +16,5 @@ pom.xml.asc
 .DS_Store
 wordlist.txt
 /lsp
+/.clj-kondo
 
