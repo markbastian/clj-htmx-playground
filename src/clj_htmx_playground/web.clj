@@ -11,6 +11,7 @@
     [ring.middleware.resource :refer [wrap-resource]]
     [ring.middleware.file :refer [wrap-file]]
     [clj-htmx-playground.examples.sidebar :as sidebar]
+    [clj-htmx-playground.examples.table :as table]
     [clj-htmx-playground.examples.pirates.routes :as pirates]
     [clj-htmx-playground.examples.bootstrap-sidebar :as bootstrap-sidebar]
     [clj-htmx-playground.examples.modal :as modal]
@@ -19,7 +20,8 @@
     [clj-htmx-playground.examples.bootstrap.flex :as bs.flex]
     [clj-htmx-playground.examples.simple.session :as ss]
     [clj-htmx-playground.chat.routes :as chat-routes]
-    [clj-htmx-playground.decoder.routes :as decoder-routes]))
+    [clj-htmx-playground.decoder.routes :as decoder-routes]
+    [clj-htmx-playground.examples.echarts.pie :as pie]))
 
 (def routes
   (reduce
@@ -33,9 +35,11 @@
      ["/bootstrap"
       ["/flex" {:handler (fn [_] (ok bs.flex/flex))}]]]
     [sidebar/routes
+     table/routes
      modal/routes
      ss/routes
-     pirates/routes]))
+     pirates/routes
+     pie/routes]))
 
 ;; TODO - Add wrap-reload middleware
 (def handler

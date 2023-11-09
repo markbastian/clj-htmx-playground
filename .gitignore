@@ -17,4 +17,4 @@ pom.xml.asc
 wordlist.txt
 /lsp
 /.clj-kondo
-
+.cpcache
